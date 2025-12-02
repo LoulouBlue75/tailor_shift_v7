@@ -8,13 +8,13 @@ export default function LandingPage() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-[var(--grey-100)]">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Logo variant="full" size="md" />
+          <Logo variant="icon" size="lg" />
           
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/professionals" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
+            <Link href="/signup?type=talent" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
               Professionals
             </Link>
-            <Link href="/brands" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
+            <Link href="/signup?type=brand" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
               Brands
             </Link>
           </nav>

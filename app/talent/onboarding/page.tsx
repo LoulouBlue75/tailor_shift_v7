@@ -1,0 +1,301 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Button, Logo } from '@/components/ui'
+import { StepIdentity } from './steps/step-identity'
+import { StepProfessional } from './steps/step-professional'
+import { StepDivisions } from './steps/step-divisions'
+import { StepPreferences } from './steps/step-preferences'
+import { Check } from 'lucide-react'
+
+const STEPS = [
+  { id: 1, name: 'Identity', description: 'Your personal information' },
+  { id: 2, name: 'Professional', description: 'Current role & experience' },
+  { id: 3, name: 'Expertise', description: 'Your divisions & skills' },
+  { id: 4, name: 'Preferences', description: 'Career aspirations' },
+]
+
+export interface OnboardingData {
+  // Step 1: Identity
+  first_name: string
+  last_name: string
+  phone: string
+  linkedin_url: string
+  // Step 2: Professional
+  current_role_level: string
+  current_store_tier: string
+  years_in_luxury: number
+  current_maison: string
+  current_location: string
+  // Step 3: Divisions
+  divisions_expertise: string[]
+  // Step 4: Preferences
+  target_role_levels: string[]
+  target_locations: string[]
+  mobility: string
+  timeline: string
+}
+
+const initialData: OnboardingData = {
+  first_name: '',
+  last_name: '',
+  phone: '',
+  linkedin_url: '',
+  current_role_level: '',
+  current_store_tier: '',
+  years_in_luxury: 0,
+  current_maison: '',
+  current_location: '',
+  divisions_expertise: [],
+  target_role_levels: [],
+  target_locations: [],
+  mobility: 'national',
+  timeline: 'passive',
+}
+
+export default function TalentOnboardingPage() {
+  const router = useRouter()
+  const supabase = createClient()
+  
+  const [currentStep, setCurrentStep] = useState(1)
+  const [data, setData] = useState<OnboardingData>(initialData)
+  const [loading, setLoading] = useState(false)
+  const [talentId, setTalentId] = useState<string | null>(null)
+
+  // Load existing talent data
+  useEffect(() => {
+    const loadTalentData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: talent } = await supabase
+        .from('talents')
+        .select('*')
+        .eq('profile_id', user.id)
+        .single()
+
+      if (talent) {
+        setTalentId(talent.id)
+        setData({
+          first_name: talent.first_name || '',
+          last_name: talent.last_name || '',
+          phone: talent.phone || '',
+          linkedin_url: talent.linkedin_url || '',
+          current_role_level: talent.current_role_level || '',
+          current_store_tier: talent.current_store_tier || '',
+          years_in_luxury: talent.years_in_luxury || 0,
+          current_maison: talent.current_maison || '',
+          current_location: talent.current_location || '',
+          divisions_expertise: talent.divisions_expertise || [],
+          target_role_levels: talent.career_preferences?.target_role_levels || [],
+          target_locations: talent.career_preferences?.target_locations || [],
+          mobility: talent.career_preferences?.mobility || 'national',
+          timeline: talent.career_preferences?.timeline || 'passive',
+        })
+      }
+    }
+    loadTalentData()
+  }, [supabase, router])
+
+  const updateData = (updates: Partial<OnboardingData>) => {
+    setData(prev => ({ ...prev, ...updates }))
+  }
+
+  const handleNext = () => {
+    if (currentStep < STEPS.length) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleComplete = async () => {
+    setLoading(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Calculate profile completion
+      let completion = 0
+      if (data.first_name && data.last_name) completion += 20
+      if (data.current_role_level && data.current_store_tier) completion += 25
+      if (data.divisions_expertise.length > 0) completion += 25
+      if (data.target_role_levels.length > 0 && data.timeline) completion += 30
+
+      // Update talent record
+      const { error: talentError } = await supabase
+        .from('talents')
+        .update({
+          first_name: data.first_name,
+          last_name: data.last_name,
+          phone: data.phone || null,
+          linkedin_url: data.linkedin_url || null,
+          current_role_level: data.current_role_level || null,
+          current_store_tier: data.current_store_tier || null,
+          years_in_luxury: data.years_in_luxury || null,
+          current_maison: data.current_maison || null,
+          current_location: data.current_location || null,
+          divisions_expertise: data.divisions_expertise,
+          career_preferences: {
+            target_role_levels: data.target_role_levels,
+            target_locations: data.target_locations,
+            mobility: data.mobility,
+            timeline: data.timeline,
+          },
+          status: 'pending_review',
+          profile_completion_pct: completion,
+        })
+        .eq('profile_id', user.id)
+
+      if (talentError) throw talentError
+
+      // Update profile as onboarding completed
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          full_name: `${data.first_name} ${data.last_name}`,
+        })
+        .eq('id', user.id)
+
+      router.push('/talent/dashboard')
+    } catch (error) {
+      console.error('Error completing onboarding:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <StepIdentity data={data} updateData={updateData} />
+      case 2:
+        return <StepProfessional data={data} updateData={updateData} />
+      case 3:
+        return <StepDivisions data={data} updateData={updateData} />
+      case 4:
+        return <StepPreferences data={data} updateData={updateData} />
+      default:
+        return null
+    }
+  }
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1:
+        return data.first_name.trim() !== '' && data.last_name.trim() !== ''
+      case 2:
+        return data.current_role_level !== '' && data.current_location.trim() !== ''
+      case 3:
+        return data.divisions_expertise.length > 0
+      case 4:
+        return data.timeline !== ''
+      default:
+        return false
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[var(--ivory)]">
+      {/* Header */}
+      <header className="bg-white border-b border-[var(--grey-200)] sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Logo size="md" />
+          <span className="text-small text-[var(--grey-500)]">
+            Step {currentStep} of {STEPS.length}
+          </span>
+        </div>
+      </header>
+
+      {/* Progress Steps */}
+      <div className="bg-white border-b border-[var(--grey-200)]">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            {STEPS.map((step, index) => (
+              <div key={step.id} className="flex items-center flex-1">
+                <div className="flex flex-col items-center">
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                    ${currentStep > step.id 
+                      ? 'bg-[var(--gold)] text-white' 
+                      : currentStep === step.id 
+                        ? 'bg-[var(--charcoal)] text-white' 
+                        : 'bg-[var(--grey-200)] text-[var(--grey-600)]'
+                    }
+                  `}>
+                    {currentStep > step.id ? (
+                      <Check className="w-5 h-5" />
+                    ) : (
+                      step.id
+                    )}
+                  </div>
+                  <span className={`
+                    mt-2 text-small font-medium hidden sm:block
+                    ${currentStep >= step.id ? 'text-[var(--charcoal)]' : 'text-[var(--grey-500)]'}
+                  `}>
+                    {step.name}
+                  </span>
+                </div>
+                {index < STEPS.length - 1 && (
+                  <div className={`
+                    flex-1 h-0.5 mx-4
+                    ${currentStep > step.id ? 'bg-[var(--gold)]' : 'bg-[var(--grey-200)]'}
+                  `} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <main className="max-w-2xl mx-auto px-6 py-12">
+        <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--grey-200)] p-8">
+          <h1 className="text-h2 mb-2">{STEPS[currentStep - 1].name}</h1>
+          <p className="text-[var(--grey-600)] mb-8">{STEPS[currentStep - 1].description}</p>
+          
+          {renderStep()}
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-[var(--grey-200)]">
+            <Button
+              variant="ghost"
+              onClick={handleBack}
+              disabled={currentStep === 1}
+            >
+              Back
+            </Button>
+            
+            {currentStep === STEPS.length ? (
+              <Button
+                onClick={handleComplete}
+                loading={loading}
+                disabled={!canProceed()}
+              >
+                Complete Profile
+              </Button>
+            ) : (
+              <Button
+                onClick={handleNext}
+                disabled={!canProceed()}
+              >
+                Continue
+              </Button>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}

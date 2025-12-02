@@ -1,26 +1,266 @@
 @import "tailwindcss";
 
+/* ============================================
+   TAILOR SHIFT V7 — DESIGN SYSTEM
+   Quiet Luxury (Smythson/Moynat inspired)
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Colors */
+  --white: #FFFFFF;
+  --ivory: #FAF8F4;
+  --charcoal: #1A1A1A;
+  
+  /* Gold Accent (max 5% usage) */
+  --gold: #B8A068;
+  --gold-dark: #9A8052;
+  --gold-light: #D4C4A0;
+  
+  /* Grey Scale */
+  --grey-100: #F5F5F5;
+  --grey-200: #E5E5E5;
+  --grey-300: #CCCCCC;
+  --grey-400: #999999;
+  --grey-500: #808080;
+  --grey-600: #666666;
+  --grey-700: #4D4D4D;
+  --grey-800: #333333;
+  
+  /* Semantic Colors */
+  --success: #4A7C59;
+  --success-light: #E8F0EA;
+  --error: #A65D57;
+  --error-light: #F5EAEA;
+  --warning: #D4A853;
+  --warning-light: #FDF8E8;
+  --info: #5A7C9A;
+  --info-light: #EDF2F6;
+  
+  /* Background & Foreground */
+  --background: var(--white);
+  --foreground: var(--charcoal);
+  --background-secondary: var(--ivory);
+  
+  /* Typography */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+  
+  /* Shadows (minimal - luxury aesthetic) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.06);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
 }
 
 @theme inline {
+  /* Colors */
+  --color-white: var(--white);
+  --color-ivory: var(--ivory);
+  --color-charcoal: var(--charcoal);
+  --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
+  --color-gold-light: var(--gold-light);
+  --color-grey-100: var(--grey-100);
+  --color-grey-200: var(--grey-200);
+  --color-grey-300: var(--grey-300);
+  --color-grey-400: var(--grey-400);
+  --color-grey-500: var(--grey-500);
+  --color-grey-600: var(--grey-600);
+  --color-grey-700: var(--grey-700);
+  --color-grey-800: var(--grey-800);
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-error: var(--error);
+  --color-error-light: var(--error-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background-secondary: var(--background-secondary);
+  
+  /* Fonts */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Base Styles */
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Typography Classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Display - 72px, Cormorant Garamond Light */
+.text-display {
+  font-family: var(--font-display);
+  font-size: 4.8rem;
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* H1 - 48px, Cormorant Garamond Light */
+.text-h1 {
+  font-family: var(--font-display);
+  font-size: 3.2rem;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* H2 - 36px, Cormorant Garamond Regular */
+.text-h2 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+/* H3 - 20px, Inter Medium */
+.text-h3 {
+  font-family: var(--font-body);
+  font-size: 1.333rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Body - 15px, Inter Regular */
+.text-body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* Small - 13px, Inter Regular */
+.text-small {
+  font-family: var(--font-body);
+  font-size: 0.867rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Caption - 11px, Inter Medium */
+.text-caption {
+  font-family: var(--font-body);
+  font-size: 0.733rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--gold-light);
+  color: var(--charcoal);
+}
+
+/* Scrollbar (minimal) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--grey-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--grey-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--grey-400);
+}
+
+/* Utility Classes */
+.bg-ivory {
+  background-color: var(--ivory);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.border-gold {
+  border-color: var(--gold);
+}
+
+/* Animation Classes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-normal) ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-slow) ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
 }

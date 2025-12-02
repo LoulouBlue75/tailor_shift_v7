@@ -122,7 +122,7 @@ function SignupForm() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-white">
       {/* Logo */}
       <div className="mb-12">
-        <Logo size="lg" />
+        <Logo variant="full" size="lg" />
       </div>
 
       {/* Signup Card */}

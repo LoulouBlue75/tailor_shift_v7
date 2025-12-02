@@ -60,7 +60,7 @@ function LoginForm() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-white">
       {/* Logo */}
       <div className="mb-12">
-        <Logo size="lg" />
+        <Logo variant="full" size="lg" />
       </div>
 
       {/* Login Card */}

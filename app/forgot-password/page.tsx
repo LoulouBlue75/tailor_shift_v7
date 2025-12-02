@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-white">
         <div className="mb-12">
-          <Logo size="lg" />
+          <Logo variant="full" size="lg" />
         </div>
 
         <div className="w-full max-w-[400px] text-center">
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-white">
       <div className="mb-12">
-        <Logo size="lg" />
+        <Logo variant="full" size="lg" />
       </div>
 
       <div className="w-full max-w-[400px]">

@@ -11,10 +11,10 @@ export default function LandingPage() {
           <Logo variant="icon" size="lg" />
           
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/signup?type=talent" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
+            <Link href="/signup?type=talent" className="text-[15px] tracking-wide text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
               Professionals
             </Link>
-            <Link href="/signup?type=brand" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
+            <Link href="/signup?type=brand" className="text-[15px] tracking-wide text-[var(--grey-600)] hover:text-[var(--charcoal)] transition-colors">
               Brands
             </Link>
           </nav>
@@ -31,22 +31,27 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="pt-32 pb-24 px-6">
+      <section className="pt-28 pb-20 px-6 min-h-[85vh] flex items-center justify-center">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-display mb-6">
+          {/* Hero Logo */}
+          <div className="mb-10 flex justify-center">
+            <Logo variant="full" size="hero" asLink={false} />
+          </div>
+
+          <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-display font-light leading-[1.08] tracking-[-0.02em] mb-6 text-[var(--charcoal)]">
             Where luxury meets opportunity
           </h1>
-          <p className="text-xl text-[var(--grey-600)] mb-12 max-w-2xl mx-auto">
+          <p className="text-[clamp(1rem,1.5vw,1.25rem)] leading-relaxed text-[var(--grey-600)] mb-12 max-w-2xl mx-auto">
             The refined platform for luxury retail careers. Connect with premium maisons through intelligent matching.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup?type=talent">
-              <Button variant="secondary" size="lg">
+              <Button variant="secondary" size="lg" className="text-[15px] tracking-[0.03em] px-8">
                 I&apos;m a Professional
               </Button>
             </Link>
             <Link href="/signup?type=brand">
-              <Button variant="secondary" size="lg">
+              <Button variant="secondary" size="lg" className="text-[15px] tracking-[0.03em] px-8">
                 I&apos;m a Brand
               </Button>
             </Link>
@@ -57,35 +62,43 @@ export default function LandingPage() {
       {/* Value Props */}
       <section className="py-24 px-6 bg-[var(--ivory)]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-h2 text-center mb-16">Why Tailor Shift</h2>
+          <h2 className="text-[clamp(1.75rem,3vw,2.75rem)] font-display font-light tracking-[-0.01em] text-center mb-16 text-[var(--charcoal)]">
+            Why Tailor Shift
+          </h2>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-8">
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-white border border-[var(--grey-200)] flex items-center justify-center mx-auto mb-6">
                 <Target className="w-7 h-7 text-[var(--gold)]" />
               </div>
-              <h3 className="text-h3 mb-3">Intelligent Matching</h3>
-              <p className="text-[var(--grey-600)]">
+              <h3 className="text-[1.375rem] font-display font-normal mb-3 text-[var(--charcoal)]">
+                Intelligent Matching
+              </h3>
+              <p className="text-[0.9375rem] leading-relaxed text-[var(--grey-600)]">
                 Our 8-dimension algorithm matches you with opportunities that truly fit your expertise and aspirations.
               </p>
             </div>
 
-            <div className="text-center p-8">
+            <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-white border border-[var(--grey-200)] flex items-center justify-center mx-auto mb-6">
                 <Shield className="w-7 h-7 text-[var(--gold)]" />
               </div>
-              <h3 className="text-h3 mb-3">Confidential</h3>
-              <p className="text-[var(--grey-600)]">
+              <h3 className="text-[1.375rem] font-display font-normal mb-3 text-[var(--charcoal)]">
+                Confidential
+              </h3>
+              <p className="text-[0.9375rem] leading-relaxed text-[var(--grey-600)]">
                 Your data stays private. No public profiles, no unsolicited contact. You control who sees your information.
               </p>
             </div>
 
-            <div className="text-center p-8">
+            <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-white border border-[var(--grey-200)] flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-7 h-7 text-[var(--gold)]" />
               </div>
-              <h3 className="text-h3 mb-3">Luxury Focused</h3>
-              <p className="text-[var(--grey-600)]">
+              <h3 className="text-[1.375rem] font-display font-normal mb-3 text-[var(--charcoal)]">
+                Luxury Focused
+              </h3>
+              <p className="text-[0.9375rem] leading-relaxed text-[var(--grey-600)]">
                 Built exclusively for luxury retail. We understand the nuances of maisons, boutiques, and client excellence.
               </p>
             </div>
@@ -96,9 +109,11 @@ export default function LandingPage() {
       {/* How It Works */}
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-h2 text-center mb-16">How it works</h2>
+          <h2 className="text-[clamp(1.75rem,3vw,2.75rem)] font-display font-light tracking-[-0.01em] text-center mb-16 text-[var(--charcoal)]">
+            How it works
+          </h2>
           
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-4 gap-10">
             {[
               { step: '01', title: 'Create Profile', desc: 'Tell us about your experience and career goals' },
               { step: '02', title: 'Complete Assessment', desc: 'Understand your strengths across 6 dimensions' },
@@ -106,11 +121,11 @@ export default function LandingPage() {
               { step: '04', title: 'Connect', desc: 'Express interest and start conversations' },
             ].map((item) => (
               <div key={item.step} className="text-center">
-                <span className="text-4xl font-display font-light text-[var(--gold)] mb-4 block">
+                <span className="text-[2.5rem] font-display font-light text-[var(--gold)] mb-4 block tracking-tight">
                   {item.step}
                 </span>
-                <h3 className="text-h3 mb-2">{item.title}</h3>
-                <p className="text-small text-[var(--grey-600)]">{item.desc}</p>
+                <h3 className="text-[1.125rem] font-medium mb-2 text-[var(--charcoal)]">{item.title}</h3>
+                <p className="text-[0.875rem] leading-relaxed text-[var(--grey-600)]">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -120,12 +135,14 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="py-24 px-6 bg-[var(--ivory)]">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-h2 mb-6">Ready to start?</h2>
-          <p className="text-[var(--grey-600)] mb-8">
+          <h2 className="text-[clamp(1.75rem,3vw,2.75rem)] font-display font-light tracking-[-0.01em] mb-6 text-[var(--charcoal)]">
+            Ready to start?
+          </h2>
+          <p className="text-[1.0625rem] leading-relaxed text-[var(--grey-600)] mb-10">
             Join the platform that connects exceptional talent with exceptional brands.
           </p>
           <Link href="/signup">
-            <Button size="lg">
+            <Button size="lg" className="text-[15px] tracking-[0.03em] px-8">
               Create Your Profile
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
@@ -137,19 +154,19 @@ export default function LandingPage() {
       <footer className="py-12 px-6 border-t border-[var(--grey-200)]">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Logo variant="full" size="sm" asLink={false} />
-              <span className="text-small text-[var(--grey-500)]">
+              <span className="text-[0.8125rem] text-[var(--grey-500)]">
                 An Irbis Partners company
               </span>
             </div>
             
-            <div className="flex items-center gap-6 text-small text-[var(--grey-600)]">
-              <Link href="/terms" className="hover:text-[var(--charcoal)]">Terms</Link>
-              <Link href="/privacy" className="hover:text-[var(--charcoal)]">Privacy</Link>
+            <div className="flex items-center gap-6 text-[0.8125rem] text-[var(--grey-600)]">
+              <Link href="/terms" className="hover:text-[var(--charcoal)] transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-[var(--charcoal)] transition-colors">Privacy</Link>
             </div>
             
-            <p className="text-small text-[var(--grey-500)]">
+            <p className="text-[0.8125rem] text-[var(--grey-500)]">
               © {new Date().getFullYear()} Tailor Shift. All rights reserved.
             </p>
           </div>

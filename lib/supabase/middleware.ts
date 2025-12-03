@@ -46,10 +46,13 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/brand')
   
   // Define auth routes
-  const isAuthRoute = 
+  const isAuthRoute =
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname === '/signup' ||
     request.nextUrl.pathname === '/forgot-password'
+
+  // Check if on home page
+  const isHomePage = request.nextUrl.pathname === '/'
 
   // Redirect unauthenticated users from protected routes
   if (!user && isProtectedRoute) {
@@ -59,22 +62,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users from auth routes to dashboard
-  if (user && isAuthRoute) {
+  // Redirect authenticated users from auth routes OR home page to dashboard
+  if (user && (isAuthRoute || isHomePage)) {
     const url = request.nextUrl.clone()
     
     // Fetch user's profile to determine the correct dashboard
     const { data: profile } = await supabase
       .from('profiles')
-      .select('user_type')
+      .select('user_type, onboarding_completed')
       .eq('id', user.id)
       .single()
     
-    // Redirect based on user_type
+    // Redirect based on user_type and onboarding status
     if (profile?.user_type === 'brand') {
-      url.pathname = '/brand/dashboard'
+      url.pathname = profile.onboarding_completed ? '/brand/dashboard' : '/brand/onboarding'
     } else {
-      url.pathname = '/talent/dashboard'
+      url.pathname = profile?.onboarding_completed ? '/talent/dashboard' : '/talent/onboarding'
     }
     
     return NextResponse.redirect(url)

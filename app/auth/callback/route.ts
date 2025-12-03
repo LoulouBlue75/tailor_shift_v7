@@ -31,8 +31,8 @@ export async function GET(request: Request) {
           const onboarding = profile.user_type === 'brand' ? '/brand/onboarding' : '/talent/onboarding'
           return NextResponse.redirect(`${origin}${onboarding}`)
         } else {
-          // New user - needs to select type (redirect to signup to select type)
-          return NextResponse.redirect(`${origin}/signup?step=type`)
+          // New user - needs to complete signup (read user type from localStorage on client)
+          return NextResponse.redirect(`${origin}/auth/complete-signup`)
         }
       }
       

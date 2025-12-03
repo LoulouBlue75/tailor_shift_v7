@@ -62,10 +62,21 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users from auth routes to dashboard
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
-    // We'll need to check user type to redirect appropriately
-    // For now, redirect to a generic dashboard path
-    // This will be refined when we implement the profile check
-    url.pathname = '/talent/dashboard'
+    
+    // Fetch user's profile to determine the correct dashboard
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_type')
+      .eq('id', user.id)
+      .single()
+    
+    // Redirect based on user_type
+    if (profile?.user_type === 'brand') {
+      url.pathname = '/brand/dashboard'
+    } else {
+      url.pathname = '/talent/dashboard'
+    }
+    
     return NextResponse.redirect(url)
   }
 

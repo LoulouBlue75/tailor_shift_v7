@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getSiteUrl } from '@/lib/utils/env'
 import { Button, Input, Logo, Card, Skeleton } from '@/components/ui'
 import { User, Building2, Check } from 'lucide-react'
 
@@ -46,6 +47,7 @@ function SignupForm() {
       options: {
         data: {
           full_name: fullName,
+          user_type: userType,
         },
       },
     })
@@ -56,17 +58,8 @@ function SignupForm() {
       return
     }
 
-    // Update the profile with user_type
+    // Create talent or brand record (profile is created by database trigger with user_type from metadata)
     if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ user_type: userType, full_name: fullName })
-        .eq('id', data.user.id)
-
-      if (profileError) {
-        console.error('Profile update error:', profileError)
-      }
-
       // Create talent or brand record
       if (userType === 'talent') {
         const names = fullName.trim().split(' ')
@@ -108,7 +101,7 @@ function SignupForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getSiteUrl()}/auth/callback`,
       },
     })
 

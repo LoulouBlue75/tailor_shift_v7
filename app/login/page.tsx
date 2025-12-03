@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { getSiteUrl } from '@/lib/utils/env'
 import { Button, Input, Logo, Skeleton } from '@/components/ui'
 
 function LoginForm() {
@@ -46,7 +47,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${redirect}`,
+        redirectTo: `${getSiteUrl()}/auth/callback?next=${redirect}`,
       },
     })
 

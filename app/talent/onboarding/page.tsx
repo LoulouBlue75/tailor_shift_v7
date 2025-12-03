@@ -11,10 +11,10 @@ import { StepPreferences } from './steps/step-preferences'
 import { Check } from 'lucide-react'
 
 const STEPS = [
-  { id: 1, name: 'Identity', description: 'Your personal information' },
-  { id: 2, name: 'Professional', description: 'Current role & experience' },
-  { id: 3, name: 'Expertise', description: 'Your divisions & skills' },
-  { id: 4, name: 'Preferences', description: 'Career aspirations' },
+  { id: 1, name: 'About you', description: "Let's start with the essentials" },
+  { id: 2, name: 'Your experience', description: 'Where you stand today' },
+  { id: 3, name: 'Your expertise', description: 'The areas you know best' },
+  { id: 4, name: 'Your aspirations', description: 'Where you want to move next' },
 ]
 
 export interface OnboardingData {

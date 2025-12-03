@@ -113,9 +113,9 @@ export default function AssessmentPage() {
 
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="max-w-2xl text-center">
-            <h1 className="text-h1 mb-4">6D Competency Assessment</h1>
+            <h1 className="text-h1 mb-4">Your six-dimension assessment</h1>
             <p className="text-lg text-[var(--grey-600)] mb-8">
-              Discover your strengths across 6 key dimensions of luxury retail excellence
+              Discover your unique strengths in luxury retail
             </p>
 
             {/* Dimensions Preview */}
@@ -130,12 +130,11 @@ export default function AssessmentPage() {
 
             <div className="flex items-center justify-center gap-2 text-[var(--grey-600)] mb-8">
               <Clock className="w-5 h-5" />
-              <span>~10 minutes • 30 questions</span>
+              <span>Ten minutes • Thirty questions</span>
             </div>
 
             <Button size="lg" onClick={() => setStarted(true)}>
-              Start Assessment
-              <ArrowRight className="w-5 h-5 ml-2" />
+              Begin
             </Button>
           </div>
         </main>

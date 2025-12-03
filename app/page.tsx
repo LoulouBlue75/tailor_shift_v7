@@ -39,10 +39,10 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-[clamp(2.5rem,5vw,4.5rem)] font-display font-light leading-[1.08] tracking-[-0.02em] mb-6 text-[var(--charcoal)]">
-            Where luxury meets opportunity
+            Tailor your next move
           </h1>
           <p className="text-[clamp(1rem,1.5vw,1.25rem)] leading-relaxed text-[var(--grey-600)] mb-12 max-w-2xl mx-auto">
-            The refined platform for luxury retail careers. Connect with premium maisons through intelligent matching.
+            A precise, discreet platform for luxury retail careers. Built for clarity, crafted for ambition.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup?type=talent">
@@ -72,10 +72,10 @@ export default function LandingPage() {
                 <Target className="w-7 h-7 text-[var(--gold)]" />
               </div>
               <h3 className="text-[1.375rem] font-display font-normal mb-3 text-[var(--charcoal)]">
-                Intelligent Matching
+                Precision Matching
               </h3>
               <p className="text-[0.9375rem] leading-relaxed text-[var(--grey-600)]">
-                Our 8-dimension algorithm matches you with opportunities that truly fit your expertise and aspirations.
+                Eight dimensions. One algorithm. Roles that align with your expertise and direction.
               </p>
             </div>
 
@@ -84,10 +84,10 @@ export default function LandingPage() {
                 <Shield className="w-7 h-7 text-[var(--gold)]" />
               </div>
               <h3 className="text-[1.375rem] font-display font-normal mb-3 text-[var(--charcoal)]">
-                Confidential
+                Absolute Discretion
               </h3>
               <p className="text-[0.9375rem] leading-relaxed text-[var(--grey-600)]">
-                Your data stays private. No public profiles, no unsolicited contact. You control who sees your information.
+                No public profiles. No unsolicited outreach. You choose what&apos;s visible — and when.
               </p>
             </div>
 
@@ -96,10 +96,10 @@ export default function LandingPage() {
                 <Sparkles className="w-7 h-7 text-[var(--gold)]" />
               </div>
               <h3 className="text-[1.375rem] font-display font-normal mb-3 text-[var(--charcoal)]">
-                Luxury Focused
+                Luxury Expertise
               </h3>
               <p className="text-[0.9375rem] leading-relaxed text-[var(--grey-600)]">
-                Built exclusively for luxury retail. We understand the nuances of maisons, boutiques, and client excellence.
+                Designed for luxury retail. Grounded in the craft, the rhythm of boutiques, and the demands of client excellence.
               </p>
             </div>
           </div>

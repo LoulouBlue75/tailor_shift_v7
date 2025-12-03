@@ -12,11 +12,16 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
   const error = searchParams.get('error')
+  const errorMessage = searchParams.get('message')
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [formError, setFormError] = useState<string | null>(error === 'auth_callback_error' ? 'Authentication failed. Please try again.' : null)
+  const [formError, setFormError] = useState<string | null>(
+    error === 'auth_callback_error'
+      ? `Authentication failed: ${errorMessage ? decodeURIComponent(errorMessage) : 'Please try again.'}`
+      : null
+  )
 
   const supabase = createClient()
 

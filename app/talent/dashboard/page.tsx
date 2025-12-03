@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button } from '@/components/ui'
+import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu } from '@/components/ui'
 import Link from 'next/link'
-import { 
-  User, MapPin, Briefcase, MessageCircle, Target, 
-  ChevronRight, Bell, Settings, LogOut, Star,
+import {
+  User, MapPin, Briefcase, MessageCircle, Target,
+  ChevronRight, Bell, Settings, Star,
   TrendingUp, Clock, CheckCircle
 } from 'lucide-react'
 
@@ -62,10 +62,7 @@ export default async function TalentDashboardPage() {
               <Link href="/talent/opportunities" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)]">
                 Opportunities
               </Link>
-              <Link href="/talent/matches" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)]">
-                Matches
-              </Link>
-              <Link href="/talent/messages" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)]">
+              <Link href="/messages" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)]">
                 Messages
                 {(unreadCount || 0) > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 text-xs bg-[var(--gold)] text-white rounded-full">
@@ -80,12 +77,14 @@ export default async function TalentDashboardPage() {
               <button className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)] relative">
                 <Bell className="w-5 h-5" />
               </button>
-              <Link href="/talent/settings" className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)]">
+              <Link href="/settings" className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)]">
                 <Settings className="w-5 h-5" />
               </Link>
-              <div className="w-8 h-8 rounded-full bg-[var(--gold-light)] flex items-center justify-center text-sm font-medium text-[var(--gold-dark)]">
-                {talent?.first_name?.[0]}{talent?.last_name?.[0]}
-              </div>
+              <UserMenu
+                initials={`${talent?.first_name?.[0] || ''}${talent?.last_name?.[0] || ''}`}
+                fullName={`${talent?.first_name || ''} ${talent?.last_name || ''}`}
+                email={profile?.email}
+              />
             </div>
           </div>
         </div>
@@ -253,9 +252,15 @@ export default async function TalentDashboardPage() {
                 <CardTitle>Your Profile</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="level">{talent?.current_role_level || 'N/A'}</Badge>
-                  <Badge variant="tier">{talent?.current_store_tier || 'N/A'}</Badge>
+                  {(talent?.store_tier_experience?.length || 0) > 0 ? (
+                    talent.store_tier_experience.map((tier: string) => (
+                      <Badge key={tier} variant="tier">{tier}</Badge>
+                    ))
+                  ) : (
+                    <Badge variant="tier">{talent?.current_store_tier || 'N/A'}</Badge>
+                  )}
                 </div>
                 {talent?.current_location && (
                   <div className="flex items-center gap-2 text-small text-[var(--grey-600)]">

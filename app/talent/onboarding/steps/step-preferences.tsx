@@ -22,7 +22,7 @@ const ROLE_LEVELS = [
 
 const MOBILITY_OPTIONS = [
   { id: 'local', name: 'Local Only', desc: 'Same city', icon: MapPin },
-  { id: 'regional', name: 'Regional', desc: 'Same country/region', icon: Building },
+  { id: 'regional', name: 'Regional', desc: 'Same region', icon: Building },
   { id: 'national', name: 'National', desc: 'Anywhere in country', icon: Globe },
   { id: 'international', name: 'International', desc: 'Open to relocate globally', icon: Globe },
 ]

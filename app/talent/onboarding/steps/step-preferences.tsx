@@ -144,9 +144,18 @@ export function StepPreferences({ data, updateData }: StepPreferencesProps) {
         label="Preferred Locations"
         placeholder="Paris, London, Milan..."
         value={data.target_locations.join(', ')}
-        onChange={(e) => updateData({ 
-          target_locations: e.target.value.split(',').map(s => s.trim()).filter(Boolean) 
-        })}
+        onChange={(e) => {
+          // Don't filter empty strings while typing - let user type commas freely
+          const rawValue = e.target.value
+          // Split by comma but preserve empty strings to allow typing commas
+          const locations = rawValue.split(',').map(s => s.trim())
+          updateData({ target_locations: locations })
+        }}
+        onBlur={(e) => {
+          // On blur, clean up the array by removing empty strings
+          const cleanedLocations = data.target_locations.filter(s => s !== '')
+          updateData({ target_locations: cleanedLocations })
+        }}
         hint="Separate multiple cities with commas"
       />
     </div>

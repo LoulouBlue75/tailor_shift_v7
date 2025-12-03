@@ -62,6 +62,7 @@ export default function TalentOnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [data, setData] = useState<OnboardingData>(initialData)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [talentId, setTalentId] = useState<string | null>(null)
 
   // Load existing talent data
@@ -120,10 +121,14 @@ export default function TalentOnboardingPage() {
 
   const handleComplete = async () => {
     setLoading(true)
+    setError(null)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      if (!user) throw new Error('Not authenticated - please log in again')
+
+      // Clean up target_locations before saving (remove empty strings)
+      const cleanedTargetLocations = data.target_locations.filter(s => s !== '')
 
       // Calculate profile completion
       let completion = 0
@@ -148,7 +153,7 @@ export default function TalentOnboardingPage() {
           divisions_expertise: data.divisions_expertise,
           career_preferences: {
             target_role_levels: data.target_role_levels,
-            target_locations: data.target_locations,
+            target_locations: cleanedTargetLocations,
             mobility: data.mobility,
             timeline: data.timeline,
           },
@@ -157,20 +162,29 @@ export default function TalentOnboardingPage() {
         })
         .eq('profile_id', user.id)
 
-      if (talentError) throw talentError
+      if (talentError) {
+        console.error('Talent update error:', talentError)
+        throw new Error(`Failed to update profile: ${talentError.message}`)
+      }
 
       // Update profile as onboarding completed
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           onboarding_completed: true,
           full_name: `${data.first_name} ${data.last_name}`,
         })
         .eq('id', user.id)
 
+      if (profileError) {
+        console.error('Profile update error:', profileError)
+        throw new Error(`Failed to complete onboarding: ${profileError.message}`)
+      }
+
       router.push('/talent/dashboard')
-    } catch (error) {
-      console.error('Error completing onboarding:', error)
+    } catch (err) {
+      console.error('Error completing onboarding:', err)
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
     } finally {
       setLoading(false)
     }
@@ -264,6 +278,13 @@ export default function TalentOnboardingPage() {
         <div className="bg-white rounded-[var(--radius-lg)] border border-[var(--grey-200)] p-8">
           <h1 className="text-h2 mb-2">{STEPS[currentStep - 1].name}</h1>
           <p className="text-[var(--grey-600)] mb-8">{STEPS[currentStep - 1].description}</p>
+          
+          {error && (
+            <div className="mb-6 p-4 rounded-[var(--radius-md)] bg-[var(--error-light)] border border-[var(--error)] text-[var(--error)]">
+              <p className="text-sm font-medium">Error</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
           
           {renderStep()}
 

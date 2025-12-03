@@ -77,6 +77,7 @@ export interface Talent {
   linkedin_url: string | null
   current_role_level: RoleLevel | null
   current_store_tier: StoreTier | null
+  store_tier_experience: StoreTier[]  // New: multi-select store tiers
   years_in_luxury: number | null
   current_employer: string | null
   current_location: string | null

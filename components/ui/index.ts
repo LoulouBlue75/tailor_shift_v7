@@ -4,3 +4,4 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 export { Badge, badgeVariants, type BadgeProps } from './badge'
 export { Skeleton } from './skeleton'
 export { Logo } from './logo'
+export { UserMenu } from './user-menu'

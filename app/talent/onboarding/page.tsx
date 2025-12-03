@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button, Logo } from '@/components/ui'
+import { Button, Logo, UserMenu } from '@/components/ui'
 import { StepIdentity } from './steps/step-identity'
 import { StepProfessional } from './steps/step-professional'
 import { StepDivisions } from './steps/step-divisions'
@@ -25,9 +25,9 @@ export interface OnboardingData {
   linkedin_url: string
   // Step 2: Professional
   current_role_level: string
-  current_store_tier: string
+  store_tier_experience: string[]  // Changed to array for multi-select
   years_in_luxury: number
-  current_maison: string
+  current_employer: string  // Renamed from current_maison to match DB column
   current_location: string
   // Step 3: Divisions
   divisions_expertise: string[]
@@ -44,9 +44,9 @@ const initialData: OnboardingData = {
   phone: '',
   linkedin_url: '',
   current_role_level: '',
-  current_store_tier: '',
+  store_tier_experience: [],  // Changed to array
   years_in_luxury: 0,
-  current_maison: '',
+  current_employer: '',  // Renamed from current_maison to match DB column
   current_location: '',
   divisions_expertise: [],
   target_role_levels: [],
@@ -64,6 +64,7 @@ export default function TalentOnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [talentId, setTalentId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
 
   // Load existing talent data
   useEffect(() => {
@@ -73,6 +74,8 @@ export default function TalentOnboardingPage() {
         router.push('/login')
         return
       }
+      
+      setUserEmail(user.email || null)
 
       const { data: talent } = await supabase
         .from('talents')
@@ -88,9 +91,9 @@ export default function TalentOnboardingPage() {
           phone: talent.phone || '',
           linkedin_url: talent.linkedin_url || '',
           current_role_level: talent.current_role_level || '',
-          current_store_tier: talent.current_store_tier || '',
+          store_tier_experience: talent.store_tier_experience || [],
           years_in_luxury: talent.years_in_luxury || 0,
-          current_maison: talent.current_maison || '',
+          current_employer: talent.current_employer || '',  // Fixed: use current_employer
           current_location: talent.current_location || '',
           divisions_expertise: talent.divisions_expertise || [],
           target_role_levels: talent.career_preferences?.target_role_levels || [],
@@ -133,7 +136,7 @@ export default function TalentOnboardingPage() {
       // Calculate profile completion
       let completion = 0
       if (data.first_name && data.last_name) completion += 20
-      if (data.current_role_level && data.current_store_tier) completion += 25
+      if (data.current_role_level && data.store_tier_experience.length > 0) completion += 25
       if (data.divisions_expertise.length > 0) completion += 25
       if (data.target_role_levels.length > 0 && data.timeline) completion += 30
 
@@ -146,9 +149,9 @@ export default function TalentOnboardingPage() {
           phone: data.phone || null,
           linkedin_url: data.linkedin_url || null,
           current_role_level: data.current_role_level || null,
-          current_store_tier: data.current_store_tier || null,
+          store_tier_experience: data.store_tier_experience,
           years_in_luxury: data.years_in_luxury || null,
-          current_maison: data.current_maison || null,
+          current_employer: data.current_employer || null,  // Fixed: use current_employer
           current_location: data.current_location || null,
           divisions_expertise: data.divisions_expertise,
           career_preferences: {
@@ -220,15 +223,33 @@ export default function TalentOnboardingPage() {
     }
   }
 
+  // Get user initials for the menu
+  const userInitials = data.first_name && data.last_name
+    ? `${data.first_name[0]}${data.last_name[0]}`.toUpperCase()
+    : userEmail
+      ? userEmail[0].toUpperCase()
+      : '?'
+  
+  const userFullName = data.first_name && data.last_name
+    ? `${data.first_name} ${data.last_name}`
+    : undefined
+
   return (
     <div className="min-h-screen bg-[var(--ivory)]">
       {/* Header */}
       <header className="bg-white border-b border-[var(--grey-200)] sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Logo size="md" />
-          <span className="text-small text-[var(--grey-500)]">
-            Step {currentStep} of {STEPS.length}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-small text-[var(--grey-500)]">
+              Step {currentStep} of {STEPS.length}
+            </span>
+            <UserMenu
+              initials={userInitials}
+              fullName={userFullName}
+              email={userEmail || undefined}
+            />
+          </div>
         </div>
       </header>
 

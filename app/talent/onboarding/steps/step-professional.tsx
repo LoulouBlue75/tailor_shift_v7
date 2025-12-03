@@ -29,6 +29,14 @@ const STORE_TIERS = [
 ]
 
 export function StepProfessional({ data, updateData }: StepProfessionalProps) {
+  const toggleStoreTier = (tierId: string) => {
+    const current = data.store_tier_experience || []
+    const updated = current.includes(tierId)
+      ? current.filter(t => t !== tierId)
+      : [...current, tierId]
+    updateData({ store_tier_experience: updated })
+  }
+
   return (
     <div className="space-y-8">
       {/* Role Level */}
@@ -61,35 +69,40 @@ export function StepProfessional({ data, updateData }: StepProfessionalProps) {
         </div>
       </div>
 
-      {/* Store Tier */}
+      {/* Store Tier - Multi-select */}
       <div>
         <label className="block text-sm font-medium text-[var(--charcoal)] mb-3">
-          Store Tier Experience
+          Store Tier Experience <span className="text-[var(--grey-500)] font-normal">(select all that apply)</span>
         </label>
         <div className="grid grid-cols-1 gap-2">
-          {STORE_TIERS.map((tier) => (
-            <Card
-              key={tier.id}
-              variant={data.current_store_tier === tier.id ? 'selected' : 'interactive'}
-              className="p-3 cursor-pointer"
-              onClick={() => updateData({ current_store_tier: tier.id })}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded bg-[var(--grey-100)] flex items-center justify-center text-caption font-medium">
-                    {tier.id}
-                  </span>
-                  <div>
-                    <span className="font-medium text-sm">{tier.name}</span>
-                    <span className="text-small text-[var(--grey-500)] ml-2">{tier.desc}</span>
+          {STORE_TIERS.map((tier) => {
+            const isSelected = (data.store_tier_experience || []).includes(tier.id)
+            return (
+              <Card
+                key={tier.id}
+                variant={isSelected ? 'selected' : 'interactive'}
+                className="p-3 cursor-pointer"
+                onClick={() => toggleStoreTier(tier.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-8 h-8 rounded flex items-center justify-center text-caption font-medium ${
+                      isSelected ? 'bg-[var(--gold-light)] text-[var(--gold-dark)]' : 'bg-[var(--grey-100)]'
+                    }`}>
+                      {tier.id}
+                    </span>
+                    <div>
+                      <span className="font-medium text-sm">{tier.name}</span>
+                      <span className="text-small text-[var(--grey-500)] ml-2">{tier.desc}</span>
+                    </div>
                   </div>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-[var(--gold)]" />
+                  )}
                 </div>
-                {data.current_store_tier === tier.id && (
-                  <Check className="w-4 h-4 text-[var(--gold)]" />
-                )}
-              </div>
-            </Card>
-          ))}
+              </Card>
+            )
+          })}
         </div>
       </div>
 
@@ -107,8 +120,8 @@ export function StepProfessional({ data, updateData }: StepProfessionalProps) {
         <Input
           label="Current Maison"
           placeholder="e.g., Louis Vuitton"
-          value={data.current_maison}
-          onChange={(e) => updateData({ current_maison: e.target.value })}
+          value={data.current_employer}
+          onChange={(e) => updateData({ current_employer: e.target.value })}
           hint="Optional"
         />
       </div>

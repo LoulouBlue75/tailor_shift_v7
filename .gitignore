@@ -1,5 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# Code chunker (external tool)
+code-chunker/
+
 # dependencies
 /node_modules
 /.pnp

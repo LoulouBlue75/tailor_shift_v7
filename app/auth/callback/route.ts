@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -7,6 +8,13 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/'
   const error_param = searchParams.get('error')
   const error_description = searchParams.get('error_description')
+
+  // Debug: Log all cookies
+  const cookieStore = await cookies()
+  const allCookies = cookieStore.getAll()
+  console.log('[Auth Callback] All cookies:', allCookies.map(c => ({ name: c.name, valueLength: c.value.length })))
+  console.log('[Auth Callback] Code present:', !!code)
+  console.log('[Auth Callback] Origin:', origin)
 
   // Handle OAuth provider errors
   if (error_param) {
@@ -17,6 +25,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
+    console.log('[Auth Callback] Attempting code exchange...')
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (error) {

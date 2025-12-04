@@ -101,11 +101,17 @@ export default async function BrandDashboardPage() {
               <button className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)] relative">
                 <Bell className="w-5 h-5" />
               </button>
-              <Link href="/brand/settings" className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)]">
+              <Link href="/settings" className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)]">
                 <Settings className="w-5 h-5" />
               </Link>
-              <div className="w-8 h-8 rounded-full bg-[var(--charcoal)] flex items-center justify-center text-sm font-medium text-white">
-                {brand.name?.[0]}
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium">{brand.contact_name || 'Admin'}</p>
+                  <p className="text-xs text-[var(--grey-500)]">{brand.contact_role || 'Administrator'}</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[var(--charcoal)] flex items-center justify-center text-sm font-medium text-white">
+                  {brand.contact_name?.[0] || brand.name?.[0] || 'A'}
+                </div>
               </div>
             </div>
           </div>
@@ -273,7 +279,7 @@ export default async function BrandDashboardPage() {
                   </div>
                 )}
 
-                <Link href="/brand/settings" className="block">
+                <Link href="/settings" className="block">
                   <Button variant="ghost" size="sm" className="w-full">
                     Edit Brand Profile
                   </Button>

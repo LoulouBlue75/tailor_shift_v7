@@ -232,7 +232,7 @@ export default async function TalentDashboardPage() {
                     <ChevronRight className="w-4 h-4 text-[var(--grey-400)]" />
                   </div>
                 </Link>
-                <Link href="/talent/experience" className="block">
+                <Link href="/talent/experience/new" className="block">
                   <div className="flex items-center justify-between p-3 rounded-[var(--radius-md)] hover:bg-[var(--grey-100)] transition-colors">
                     <div className="flex items-center gap-3">
                       <Briefcase className="w-5 h-5 text-[var(--grey-600)]" />

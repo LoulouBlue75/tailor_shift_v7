@@ -146,7 +146,7 @@ function SignupForm() {
                   </div>
                   <div>
                     <h3 className="font-medium text-[var(--charcoal)]">Professional</h3>
-                    <p className="text-small text-[var(--grey-600)]">Looking for opportunities</p>
+                    <p className="text-small text-[var(--grey-600)]">Enter the luxury retail world</p>
                   </div>
                   {userType === 'talent' && (
                     <Check className="w-5 h-5 text-[var(--gold)]" />
@@ -189,7 +189,7 @@ function SignupForm() {
             <Input
               type="text"
               label="Brand Name"
-              placeholder="e.g., Louis Vuitton"
+              placeholder="e.g., Chanel"
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
               required

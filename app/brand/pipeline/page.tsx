@@ -2,10 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button } from '@/components/ui'
-import { calculateMatch, type TalentProfile, type OpportunityProfile } from '@/lib/matching/algorithm'
-import { 
-  Users, Filter, ChevronRight, MapPin, Briefcase, Star, 
-  Clock, UserCheck, Send, X, Search, ArrowLeft, Plus
+import {
+  calculateMatch,
+  calculateCompensationAlignment,
+  getCompensationBadgeInfo,
+  type TalentProfile,
+  type OpportunityProfile
+} from '@/lib/matching/algorithm'
+import {
+  Users, Filter, ChevronRight, MapPin, Briefcase, Star,
+  Clock, UserCheck, Send, X, Search, ArrowLeft, Plus, DollarSign
 } from 'lucide-react'
 
 const PIPELINE_STAGES = [
@@ -43,9 +49,11 @@ export default async function BrandPipelinePage() {
         talent_id,
         status,
         match_score,
+        compensation_alignment,
         talent:talents(
-          id, first_name, last_name, current_role_level, 
-          current_employer, current_location, years_in_luxury
+          id, first_name, last_name, current_role_level,
+          current_employer, current_location, years_in_luxury,
+          compensation_profile
         )
       )
     `)
@@ -55,7 +63,7 @@ export default async function BrandPipelinePage() {
   // Get all talents for matching (in production, this would be filtered/paginated)
   const { data: talents } = await supabase
     .from('talents')
-    .select('*, assessment:assessments(dimension_scores)')
+    .select('*, assessment:assessments(dimension_scores), compensation_profile')
     .limit(100)
 
   // Calculate potential matches for opportunities without existing matches
@@ -75,6 +83,9 @@ export default async function BrandPipelinePage() {
         required_languages: opp.required_languages || [],
       }
 
+      // Extract opportunity compensation range
+      const oppCompRange = opp.compensation_range as { min_base?: number; max_base?: number; currency?: string } | null
+
       potentialMatches = talents.slice(0, 5).map(t => {
         const talentProfile: TalentProfile = {
           id: t.id,
@@ -86,11 +97,23 @@ export default async function BrandPipelinePage() {
           assessment_scores: t.assessment?.[0]?.dimension_scores,
         }
         const match = calculateMatch(talentProfile, oppProfile)
+        
+        // Calculate compensation alignment
+        const talentComp = t.compensation_profile as { expectations?: number; currency?: string } | null
+        const compAlignment = calculateCompensationAlignment(
+          talentComp?.expectations,
+          oppCompRange?.min_base,
+          oppCompRange?.max_base,
+          talentComp?.currency,
+          oppCompRange?.currency
+        )
+
         return {
           id: `temp-${t.id}`,
           talent_id: t.id,
           status: 'matched',
           match_score: match.overall_score,
+          compensation_alignment: compAlignment,
           talent: t,
         }
       }).sort((a, b) => b.match_score - a.match_score)
@@ -249,6 +272,36 @@ export default async function BrandPipelinePage() {
                               <p className="text-lg font-display text-[var(--gold)]">{match.match_score}%</p>
                               <p className="text-caption text-[var(--grey-500)]">match</p>
                             </div>
+
+                            {/* Compensation Alignment Badge */}
+                            {(() => {
+                              const compAlign = match.compensation_alignment
+                              if (compAlign && compAlign.alignment !== 'unknown') {
+                                const badgeInfo = getCompensationBadgeInfo(compAlign)
+                                return (
+                                  <div
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+                                    style={{
+                                      backgroundColor: badgeInfo.bgColor,
+                                      color: badgeInfo.color
+                                    }}
+                                    title={compAlign.details}
+                                  >
+                                    <span>{badgeInfo.icon}</span>
+                                    <span>{badgeInfo.label}</span>
+                                  </div>
+                                )
+                              }
+                              return (
+                                <div
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--grey-100)] text-[var(--grey-500)]"
+                                  title="Candidate has not shared salary expectations"
+                                >
+                                  <DollarSign className="w-3 h-3" />
+                                  <span>Unknown</span>
+                                </div>
+                              )
+                            })()}
 
                             {/* Stage Badge */}
                             <Badge variant={match.status === 'matched' ? 'default' : 'filled'}>

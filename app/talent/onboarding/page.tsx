@@ -8,6 +8,7 @@ import { StepIdentity } from './steps/step-identity'
 import { StepProfessional } from './steps/step-professional'
 import { StepDivisions } from './steps/step-divisions'
 import { StepPreferences } from './steps/step-preferences'
+import { StepCompensation } from './steps/step-compensation'
 import { Check } from 'lucide-react'
 
 const STEPS = [
@@ -15,6 +16,7 @@ const STEPS = [
   { id: 2, name: 'Your experience', description: 'Where you stand today' },
   { id: 3, name: 'Your expertise', description: 'The areas you know best' },
   { id: 4, name: 'Your aspirations', description: 'Where you want to move next' },
+  { id: 5, name: 'Compensation', description: 'Help us match you accurately' },
 ]
 
 export interface OnboardingData {
@@ -36,6 +38,13 @@ export interface OnboardingData {
   target_locations: string[]
   mobility: string
   timeline: string
+  // Step 5: Compensation
+  current_base: number | null
+  current_variable: number | null
+  currency: string
+  expectations: number | null
+  salary_flexibility: 'flexible' | 'firm'
+  hide_exact_figures: boolean
 }
 
 const initialData: OnboardingData = {
@@ -53,6 +62,13 @@ const initialData: OnboardingData = {
   target_locations: [],
   mobility: 'national',
   timeline: 'passive',
+  // Compensation defaults
+  current_base: null,
+  current_variable: null,
+  currency: 'EUR',
+  expectations: null,
+  salary_flexibility: 'flexible',
+  hide_exact_figures: true,
 }
 
 export default function TalentOnboardingPage() {
@@ -85,6 +101,16 @@ export default function TalentOnboardingPage() {
 
       if (talent) {
         setTalentId(talent.id)
+        // Extract compensation profile with proper typing
+        const compensationProfile = talent.compensation_profile as {
+          current_base?: number | null
+          current_variable?: number | null
+          currency?: string
+          expectations?: number | null
+          salary_flexibility?: 'flexible' | 'firm'
+          hide_exact_figures?: boolean
+        } | null
+
         setData({
           first_name: talent.first_name || '',
           last_name: talent.last_name || '',
@@ -100,6 +126,13 @@ export default function TalentOnboardingPage() {
           target_locations: talent.career_preferences?.target_locations || [],
           mobility: talent.career_preferences?.mobility || 'national',
           timeline: talent.career_preferences?.timeline || 'passive',
+          // Load compensation data
+          current_base: compensationProfile?.current_base ?? null,
+          current_variable: compensationProfile?.current_variable ?? null,
+          currency: compensationProfile?.currency || 'EUR',
+          expectations: compensationProfile?.expectations ?? null,
+          salary_flexibility: compensationProfile?.salary_flexibility || 'flexible',
+          hide_exact_figures: compensationProfile?.hide_exact_figures ?? true,
         })
       }
     }
@@ -140,7 +173,7 @@ export default function TalentOnboardingPage() {
       if (data.divisions_expertise.length > 0) completion += 25
       if (data.target_role_levels.length > 0 && data.timeline) completion += 30
 
-      // Update talent record
+      // Update talent record including compensation profile
       const { error: talentError } = await supabase
         .from('talents')
         .update({
@@ -159,6 +192,15 @@ export default function TalentOnboardingPage() {
             target_locations: cleanedTargetLocations,
             mobility: data.mobility,
             timeline: data.timeline,
+          },
+          // Save compensation profile as JSONB
+          compensation_profile: {
+            current_base: data.current_base,
+            current_variable: data.current_variable,
+            currency: data.currency,
+            expectations: data.expectations,
+            salary_flexibility: data.salary_flexibility,
+            hide_exact_figures: data.hide_exact_figures,
           },
           status: 'pending_review',
           profile_completion_pct: completion,
@@ -203,6 +245,8 @@ export default function TalentOnboardingPage() {
         return <StepDivisions data={data} updateData={updateData} />
       case 4:
         return <StepPreferences data={data} updateData={updateData} />
+      case 5:
+        return <StepCompensation data={data} updateData={updateData} />
       default:
         return null
     }
@@ -218,6 +262,10 @@ export default function TalentOnboardingPage() {
         return data.divisions_expertise.length > 0
       case 4:
         return data.timeline !== ''
+      case 5:
+        // Compensation step is optional - always allow proceeding
+        // But encourage filling if expectations are set
+        return true
       default:
         return false
     }

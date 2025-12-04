@@ -3,6 +3,131 @@
 
 import type { Dimension } from '@/lib/assessment/questions'
 
+// ============================================================================
+// COMPENSATION ALIGNMENT
+// ============================================================================
+
+export type CompensationAlignment = 'within_range' | 'above_range' | 'below_range' | 'unknown'
+
+export interface CompensationAlignmentResult {
+  alignment: CompensationAlignment
+  percentageDiff: number | null  // How far above/below range (e.g., +15% means 15% above max)
+  details: string
+}
+
+/**
+ * Calculate compensation alignment between talent expectations and opportunity range
+ */
+export function calculateCompensationAlignment(
+  talentExpectations: number | null | undefined,
+  opportunityMin: number | null | undefined,
+  opportunityMax: number | null | undefined,
+  talentCurrency?: string,
+  opportunityCurrency?: string
+): CompensationAlignmentResult {
+  // If talent hasn't set expectations, alignment is unknown
+  if (!talentExpectations || talentExpectations === 0) {
+    return {
+      alignment: 'unknown',
+      percentageDiff: null,
+      details: 'Candidate has not shared salary expectations'
+    }
+  }
+
+  // If opportunity doesn't have salary range, alignment is unknown
+  if (!opportunityMin && !opportunityMax) {
+    return {
+      alignment: 'unknown',
+      percentageDiff: null,
+      details: 'Salary range not specified for this role'
+    }
+  }
+
+  // Use max as upper bound, fallback to min * 1.3 if not set
+  const maxRange = opportunityMax || (opportunityMin ? opportunityMin * 1.3 : 0)
+  // Use min as lower bound, fallback to max * 0.7 if not set
+  const minRange = opportunityMin || (opportunityMax ? opportunityMax * 0.7 : 0)
+
+  // TODO: Add currency conversion in the future
+  // For now, assume same currency
+
+  // Calculate alignment
+  if (talentExpectations >= minRange && talentExpectations <= maxRange) {
+    return {
+      alignment: 'within_range',
+      percentageDiff: 0,
+      details: 'Within budget range'
+    }
+  }
+
+  if (talentExpectations > maxRange) {
+    const percentAbove = Math.round(((talentExpectations - maxRange) / maxRange) * 100)
+    return {
+      alignment: 'above_range',
+      percentageDiff: percentAbove,
+      details: `${percentAbove}% above budget`
+    }
+  }
+
+  if (talentExpectations < minRange) {
+    const percentBelow = Math.round(((minRange - talentExpectations) / minRange) * 100)
+    return {
+      alignment: 'below_range',
+      percentageDiff: -percentBelow,
+      details: `${percentBelow}% below minimum`
+    }
+  }
+
+  return {
+    alignment: 'unknown',
+    percentageDiff: null,
+    details: 'Unable to calculate alignment'
+  }
+}
+
+/**
+ * Get the display info for compensation alignment badge
+ */
+export function getCompensationBadgeInfo(alignment: CompensationAlignmentResult): {
+  label: string
+  color: string
+  bgColor: string
+  icon: '🟢' | '🟡' | '🔵' | '⚪'
+} {
+  switch (alignment.alignment) {
+    case 'within_range':
+      return {
+        label: 'Within range',
+        color: 'var(--success)',
+        bgColor: 'var(--success-light)',
+        icon: '🟢'
+      }
+    case 'above_range':
+      return {
+        label: alignment.percentageDiff
+          ? `Above range (+${alignment.percentageDiff}%)`
+          : 'Above range',
+        color: 'var(--warning)',
+        bgColor: 'var(--warning-light, #FEF3CD)',
+        icon: '🟡'
+      }
+    case 'below_range':
+      return {
+        label: 'Below range',
+        color: 'var(--info)',
+        bgColor: 'var(--info-light, #D1ECF1)',
+        icon: '🔵'
+      }
+    default:
+      return {
+        label: 'Unknown',
+        color: 'var(--grey-500)',
+        bgColor: 'var(--grey-100)',
+        icon: '⚪'
+      }
+  }
+}
+
 // 8 Dimensions for matching (6D assessment + 2 structural)
 export interface MatchDimensions {
   // From 6D Assessment

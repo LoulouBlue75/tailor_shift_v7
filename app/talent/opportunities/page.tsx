@@ -2,8 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Logo, Badge, Card, CardContent, Button } from '@/components/ui'
 import Link from 'next/link'
-import { MapPin, Building2, Heart, ChevronRight, Target, ArrowLeft, Filter } from 'lucide-react'
-import { calculateMatch, type TalentProfile, type OpportunityProfile, type MatchResult } from '@/lib/matching/algorithm'
+import { MapPin, Building2, Heart, ChevronRight, Target, ArrowLeft, Filter, DollarSign, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react'
+import {
+  calculateMatch,
+  calculateCompensationAlignment,
+  type TalentProfile,
+  type OpportunityProfile,
+  type MatchResult,
+  type CompensationAlignmentResult
+} from '@/lib/matching/algorithm'
 
 export default async function TalentOpportunitiesPage() {
   const supabase = await createClient()
@@ -13,7 +20,7 @@ export default async function TalentOpportunitiesPage() {
 
   const { data: talent } = await supabase
     .from('talents')
-    .select('*')
+    .select('*, compensation_profile')
     .eq('profile_id', user.id)
     .single()
 
@@ -29,13 +36,14 @@ export default async function TalentOpportunitiesPage() {
     .limit(1)
     .single()
 
-  // Get active opportunities with brand and store info
+  // Get active opportunities with brand and store info, including compensation_range
   const { data: opportunities } = await supabase
     .from('opportunities')
     .select(`
       *,
       brand:brands(name, segment, logo_url),
-      store:stores(name, city, country, tier)
+      store:stores(name, city, country, tier),
+      compensation_range
     `)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -53,6 +61,14 @@ export default async function TalentOpportunitiesPage() {
     assessment_scores: assessment?.dimension_scores,
   }
 
+  // Extract talent compensation expectations
+  const talentComp = talent.compensation_profile as {
+    expectations?: number
+    currency?: string
+    current_base?: number
+    hide_exact_figures?: boolean
+  } | null
+
   const matchedOpportunities = (opportunities || []).map(opp => {
     const oppProfile: OpportunityProfile = {
       id: opp.id,
@@ -65,7 +81,23 @@ export default async function TalentOpportunitiesPage() {
     }
     
     const match = calculateMatch(talentProfile, oppProfile)
-    return { ...opp, match }
+    
+    // Calculate compensation alignment for this opportunity
+    const oppCompRange = opp.compensation_range as {
+      min_base?: number
+      max_base?: number
+      currency?: string
+    } | null
+    
+    const compAlignment = calculateCompensationAlignment(
+      talentComp?.expectations,
+      oppCompRange?.min_base,
+      oppCompRange?.max_base,
+      talentComp?.currency,
+      oppCompRange?.currency
+    )
+
+    return { ...opp, match, compAlignment }
   }).sort((a, b) => b.match.overall_score - a.match.overall_score)
 
   const getMatchColor = (score: number) => {
@@ -134,6 +166,23 @@ export default async function TalentOpportunitiesPage() {
           </Card>
         )}
 
+        {/* Prompt to add compensation expectations if not set */}
+        {!talentComp?.expectations && (
+          <Card className="mb-6 border-[var(--info)] bg-[var(--info)]/5">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <DollarSign className="w-5 h-5 text-[var(--info)]" />
+                <p className="text-sm">
+                  <strong>Add your salary expectations</strong> to see which roles fit your budget
+                </p>
+              </div>
+              <Link href="/talent/profile#compensation">
+                <Button size="sm" variant="secondary">Add Expectations</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
         {matchedOpportunities.length === 0 ? (
           <Card className="p-12 text-center">
             <Target className="w-12 h-12 mx-auto mb-4 text-[var(--grey-400)]" />
@@ -177,6 +226,38 @@ export default async function TalentOpportunitiesPage() {
                         {opp.store?.tier && <Badge variant="tier">{opp.store.tier}</Badge>}
                         {opp.division && (
                           <Badge variant="filled">{opp.division.replace(/_/g, ' ')}</Badge>
+                        )}
+                        
+                        {/* Compensation Fit Indicator */}
+                        {opp.compAlignment && opp.compAlignment.alignment !== 'unknown' && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                              opp.compAlignment.alignment === 'within_range'
+                                ? 'bg-[var(--success-light)] text-[var(--success)]'
+                                : opp.compAlignment.alignment === 'above_range'
+                                  ? 'bg-[var(--warning-light,#FEF3CD)] text-[var(--warning,#856404)]'
+                                  : 'bg-[var(--info-light,#D1ECF1)] text-[var(--info)]'
+                            }`}
+                          >
+                            {opp.compAlignment.alignment === 'within_range' && (
+                              <>
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Within budget</span>
+                              </>
+                            )}
+                            {opp.compAlignment.alignment === 'above_range' && (
+                              <>
+                                <TrendingUp className="w-3 h-3" />
+                                <span>Above budget</span>
+                              </>
+                            )}
+                            {opp.compAlignment.alignment === 'below_range' && (
+                              <>
+                                <TrendingDown className="w-3 h-3" />
+                                <span>Below expectations</span>
+                              </>
+                            )}
+                          </span>
                         )}
                       </div>
 

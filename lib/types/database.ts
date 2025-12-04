@@ -55,6 +55,9 @@ export interface CompensationProfile {
   current_variable: number | null
   currency: string
   expectations: number | null
+  // Extended fields added in compensation collection feature
+  salary_flexibility?: 'flexible' | 'firm'
+  hide_exact_figures?: boolean
 }
 
 export interface AssessmentSummary {

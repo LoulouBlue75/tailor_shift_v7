@@ -4,8 +4,8 @@ import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu
 import Link from 'next/link'
 import {
   User, MapPin, Briefcase, MessageCircle, Target,
-  ChevronRight, Bell, Settings, Star,
-  TrendingUp, Clock, CheckCircle
+  ChevronRight, Bell, Star, Heart,
+  TrendingUp, Clock, CheckCircle, Building, Sparkles
 } from 'lucide-react'
 
 export default async function TalentDashboardPage() {
@@ -241,6 +241,72 @@ export default async function TalentDashboardPage() {
                     <ChevronRight className="w-4 h-4 text-[var(--grey-400)]" />
                   </div>
                 </Link>
+              </CardContent>
+            </Card>
+
+            {/* Dream Brands Section */}
+            <Card>
+              <CardHeader className="flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[var(--gold)]" />
+                  Dream Brands
+                </CardTitle>
+                <Link href="/talent/onboarding?step=6" className="text-small text-[var(--gold)] hover:underline">
+                  Edit
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {((talent?.career_preferences as { target_brands?: string[] } | null)?.target_brands?.length ?? 0) > 0 ? (
+                  <div className="space-y-2">
+                    {((talent?.career_preferences as { target_brands?: string[] } | null)?.target_brands ?? []).map((brand: string, index: number) => {
+                      const isCurrentEmployer = talent?.current_employer &&
+                        brand.toLowerCase() === talent.current_employer.toLowerCase()
+                      
+                      return (
+                        <div key={brand} className="flex items-center gap-3 p-2 rounded-[var(--radius-md)] bg-[var(--grey-50)]">
+                          <span className={`
+                            w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                            ${index === 0
+                              ? 'bg-[var(--gold)] text-white'
+                              : 'bg-[var(--grey-200)] text-[var(--grey-700)]'
+                            }
+                          `}>
+                            {index + 1}
+                          </span>
+                          <span className="text-sm font-medium flex-1">{brand}</span>
+                          {isCurrentEmployer && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-[var(--burgundy)]/10 text-[var(--burgundy)] rounded-full">
+                              Internal
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                    
+                    {/* Internal Mobility Status */}
+                    {talent?.internal_mobility_interest && (
+                      <div className="mt-3 p-2 bg-[var(--success-light)] rounded-[var(--radius-md)] border border-[var(--success)]">
+                        <div className="flex items-center gap-2">
+                          <Building className="w-4 h-4 text-[var(--success)]" />
+                          <span className="text-xs text-[var(--success)] font-medium">
+                            Open to internal mobility at {talent.current_employer}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-[var(--grey-500)]">
+                    <Heart className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm font-medium">No dream brands set</p>
+                    <p className="text-xs">Add brands you'd love to work for</p>
+                    <Link href="/talent/onboarding?step=6">
+                      <Button size="sm" variant="secondary" className="mt-3">
+                        Add Dream Brands
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

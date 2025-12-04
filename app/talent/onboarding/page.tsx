@@ -9,6 +9,7 @@ import { StepProfessional } from './steps/step-professional'
 import { StepDivisions } from './steps/step-divisions'
 import { StepPreferences } from './steps/step-preferences'
 import { StepCompensation } from './steps/step-compensation'
+import { StepDreamBrands } from './steps/step-dream-brands'
 import { Check } from 'lucide-react'
 
 const STEPS = [
@@ -17,6 +18,7 @@ const STEPS = [
   { id: 3, name: 'Your expertise', description: 'The areas you know best' },
   { id: 4, name: 'Your aspirations', description: 'Where you want to move next' },
   { id: 5, name: 'Compensation', description: 'Help us match you accurately' },
+  { id: 6, name: 'Dream Brands', description: 'Where would you love to work?' },
 ]
 
 export interface OnboardingData {
@@ -45,6 +47,8 @@ export interface OnboardingData {
   expectations: number | null
   salary_flexibility: 'flexible' | 'firm'
   hide_exact_figures: boolean
+  // Step 6: Dream Brands
+  target_brands: string[]
 }
 
 const initialData: OnboardingData = {
@@ -69,6 +73,8 @@ const initialData: OnboardingData = {
   expectations: null,
   salary_flexibility: 'flexible',
   hide_exact_figures: true,
+  // Dream Brands defaults
+  target_brands: [],
 }
 
 export default function TalentOnboardingPage() {
@@ -124,6 +130,7 @@ export default function TalentOnboardingPage() {
           divisions_expertise: talent.divisions_expertise || [],
           target_role_levels: talent.career_preferences?.target_role_levels || [],
           target_locations: talent.career_preferences?.target_locations || [],
+          target_brands: talent.career_preferences?.target_brands || [],
           mobility: talent.career_preferences?.mobility || 'national',
           timeline: talent.career_preferences?.timeline || 'passive',
           // Load compensation data
@@ -187,9 +194,14 @@ export default function TalentOnboardingPage() {
           current_employer: data.current_employer || null,  // Fixed: use current_employer
           current_location: data.current_location || null,
           divisions_expertise: data.divisions_expertise,
+          // Detect internal mobility: if current employer is in target_brands
+          internal_mobility_interest: data.current_employer
+            ? data.target_brands.some(b => b.toLowerCase() === data.current_employer.toLowerCase())
+            : false,
           career_preferences: {
             target_role_levels: data.target_role_levels,
             target_locations: cleanedTargetLocations,
+            target_brands: data.target_brands,
             mobility: data.mobility,
             timeline: data.timeline,
           },
@@ -247,6 +259,8 @@ export default function TalentOnboardingPage() {
         return <StepPreferences data={data} updateData={updateData} />
       case 5:
         return <StepCompensation data={data} updateData={updateData} />
+      case 6:
+        return <StepDreamBrands data={data} updateData={updateData} />
       default:
         return null
     }
@@ -265,6 +279,9 @@ export default function TalentOnboardingPage() {
       case 5:
         // Compensation step is optional - always allow proceeding
         // But encourage filling if expectations are set
+        return true
+      case 6:
+        // Dream Brands is optional but recommended
         return true
       default:
         return false

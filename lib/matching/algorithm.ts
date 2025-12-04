@@ -290,6 +290,34 @@ export function calculateLanguageFit(
   return Math.round((matches.length / requiredLanguages.length) * 100)
 }
 
+// Dream Brand boost configuration
+export const DREAM_BRAND_BOOST = 15  // +15 points when opportunity matches Dream Brand
+
+// Calculate Dream Brand boost
+export function calculateDreamBrandBoost(
+  talentTargetBrands: string[],
+  opportunityBrandName: string
+): { boost: number; isDreamBrand: boolean; rank: number } {
+  if (!talentTargetBrands?.length || !opportunityBrandName) {
+    return { boost: 0, isDreamBrand: false, rank: 0 }
+  }
+  
+  const lowerBrandName = opportunityBrandName.toLowerCase()
+  const index = talentTargetBrands.findIndex(
+    b => b.toLowerCase() === lowerBrandName
+  )
+  
+  if (index === -1) {
+    return { boost: 0, isDreamBrand: false, rank: 0 }
+  }
+  
+  // Full boost for #1 choice, slightly less for others
+  const rank = index + 1
+  const boost = rank === 1 ? DREAM_BRAND_BOOST : Math.max(5, DREAM_BRAND_BOOST - (rank - 1) * 3)
+  
+  return { boost, isDreamBrand: true, rank }
+}
+
 // Main matching function
 export interface TalentProfile {
   id: string
@@ -302,12 +330,14 @@ export interface TalentProfile {
     target_role_levels?: string[]
     mobility?: string
     target_locations?: string[]
+    target_brands?: string[]  // Dream Brands for boost calculation
   }
   assessment_scores?: Record<Dimension, number>
 }
 
 export interface OpportunityProfile {
   id: string
+  brand_name?: string  // Brand name for Dream Brand matching
   role_level: string
   division: string | null
   city: string
@@ -320,6 +350,10 @@ export interface OpportunityProfile {
 
 export interface MatchResult {
   overall_score: number
+  base_score: number  // Score before Dream Brand boost
+  dream_brand_boost: number  // Boost applied from Dream Brand match
+  is_dream_brand: boolean  // True if opportunity brand is in talent's Dream Brands
+  dream_brand_rank: number  // 1-5 rank in Dream Brands list (0 if not a Dream Brand)
   dimension_scores: MatchDimensions
   breakdown: {
     dimension: string
@@ -408,11 +442,20 @@ export function calculateMatch(
   })
   
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0)
-  const overall_score = Math.round(
+  const base_score = Math.round(
     breakdown.reduce((sum, b) => sum + b.weighted_score, 0) / totalWeight * 100
   )
   
-  // Determine recommendation
+  // Calculate Dream Brand boost
+  const dreamBrandResult = calculateDreamBrandBoost(
+    talent.career_preferences?.target_brands || [],
+    opportunity.brand_name || ''
+  )
+  
+  // Apply boost (capped at 100)
+  const overall_score = Math.min(100, base_score + dreamBrandResult.boost)
+  
+  // Determine recommendation (based on boosted score)
   let recommendation: MatchResult['recommendation']
   if (overall_score >= 80) recommendation = 'strong'
   else if (overall_score >= 65) recommendation = 'good'
@@ -421,6 +464,10 @@ export function calculateMatch(
   
   return {
     overall_score,
+    base_score,
+    dream_brand_boost: dreamBrandResult.boost,
+    is_dream_brand: dreamBrandResult.isDreamBrand,
+    dream_brand_rank: dreamBrandResult.rank,
     dimension_scores: dimensionScores,
     breakdown,
     recommendation,

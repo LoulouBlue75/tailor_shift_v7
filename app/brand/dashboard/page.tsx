@@ -4,7 +4,7 @@ import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu
 import Link from 'next/link'
 import {
   Building2, MapPin, Users, Briefcase, Plus,
-  ChevronRight, Bell, Target, Store
+  ChevronRight, Bell, Target, Store, Heart, TrendingUp, Lock
 } from 'lucide-react'
 
 export default async function BrandDashboardPage() {
@@ -61,6 +61,38 @@ export default async function BrandDashboardPage() {
       .in('status', ['suggested', 'talent_interested', 'mutual'])
     matchCount = count || 0
   }
+
+  // Get anonymized interest pool - talents who have this brand as a Dream Brand
+  // PRIVACY: We only show aggregate counts, NEVER individual profiles
+  const { data: interestedTalents } = await supabase
+    .from('talents')
+    .select('id, current_role_level, current_location, current_employer, internal_mobility_interest, career_preferences')
+    .filter('career_preferences->target_brands', 'cs', `["${brand.name}"]`)
+    .eq('status', 'active')
+
+  // Aggregate by role level (anonymized)
+  const interestByLevel: Record<string, number> = {}
+  const interestByRegion: Record<string, number> = {}
+  let internalMobilityCount = 0
+
+  interestedTalents?.forEach((talent) => {
+    // Count by role level
+    const level = talent.current_role_level || 'Not specified'
+    interestByLevel[level] = (interestByLevel[level] || 0) + 1
+    
+    // Count by region (extract region from location)
+    const location = talent.current_location || 'Not specified'
+    const region = location.split(',')[0].trim() // Take first part (city/region)
+    interestByRegion[region] = (interestByRegion[region] || 0) + 1
+    
+    // Count internal mobility (current employees interested in internal moves)
+    if (talent.current_employer?.toLowerCase() === brand.name.toLowerCase() &&
+        talent.internal_mobility_interest) {
+      internalMobilityCount++
+    }
+  })
+
+  const totalInterested = interestedTalents?.length || 0
 
   return (
     <div className="min-h-screen bg-[var(--ivory)]">
@@ -202,8 +234,105 @@ export default async function BrandDashboardPage() {
             </Card>
           </div>
 
-          {/* Quick Actions */}
+          {/* Sidebar: Quick Actions + Interest Pool */}
           <div className="space-y-6">
+            {/* Interest Pool - ANONYMIZED */}
+            <Card className="border-[var(--gold)] bg-[var(--gold-light)]/10">
+              <CardHeader className="flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-[var(--gold)]" />
+                  Talent Interest Pool
+                </CardTitle>
+                <div className="flex items-center gap-1 text-xs text-[var(--grey-500)]">
+                  <Lock className="w-3 h-3" />
+                  Anonymized
+                </div>
+              </CardHeader>
+              <CardContent>
+                {totalInterested > 0 ? (
+                  <div className="space-y-4">
+                    {/* Total Count */}
+                    <div className="text-center p-4 bg-white rounded-[var(--radius-md)]">
+                      <p className="text-3xl font-display font-light text-[var(--gold)]">{totalInterested}</p>
+                      <p className="text-small text-[var(--grey-600)]">
+                        Talents interested in {brand.name}
+                      </p>
+                    </div>
+
+                    {/* By Role Level */}
+                    {Object.keys(interestByLevel).length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-[var(--grey-500)] uppercase tracking-wide mb-2">
+                          By Role Level
+                        </p>
+                        <div className="space-y-1">
+                          {Object.entries(interestByLevel)
+                            .sort(([, a], [, b]) => b - a)
+                            .slice(0, 5)
+                            .map(([level, count]) => (
+                              <div key={level} className="flex items-center justify-between text-sm">
+                                <span className="text-[var(--grey-600)]">{level}</span>
+                                <Badge variant="default" size="sm">{count}</Badge>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    )}
+
+                    {/* By Region */}
+                    {Object.keys(interestByRegion).length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-[var(--grey-500)] uppercase tracking-wide mb-2">
+                          By Location
+                        </p>
+                        <div className="space-y-1">
+                          {Object.entries(interestByRegion)
+                            .sort(([, a], [, b]) => b - a)
+                            .slice(0, 4)
+                            .map(([region, count]) => (
+                              <div key={region} className="flex items-center justify-between text-sm">
+                                <span className="text-[var(--grey-600)]">{region}</span>
+                                <Badge variant="default" size="sm">{count}</Badge>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Internal Mobility */}
+                    {internalMobilityCount > 0 && (
+                      <div className="p-3 bg-[var(--burgundy)]/5 rounded-[var(--radius-md)] border border-[var(--burgundy)]/20">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-[var(--burgundy)]" />
+                          <div>
+                            <p className="text-sm font-medium text-[var(--burgundy)]">
+                              {internalMobilityCount} internal talent{internalMobilityCount > 1 ? 's' : ''}
+                            </p>
+                            <p className="text-xs text-[var(--grey-600)]">
+                              Current employees open to internal moves
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Privacy Notice */}
+                    <p className="text-xs text-[var(--grey-500)] text-center mt-4">
+                      Individual profiles only visible after mutual match
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-[var(--grey-500)]">
+                    <Heart className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm font-medium">No interest yet</p>
+                    <p className="text-xs">Talents can add {brand.name} to their Dream Brands</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>

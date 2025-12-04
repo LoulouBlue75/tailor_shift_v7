@@ -50,6 +50,12 @@ export interface CareerPreferences {
   timeline: 'active' | 'passive' | 'not_looking'
 }
 
+// Academy status type for no-experience talents
+export type AcademyStatus = 'interested' | 'waitlisted' | 'invited' | 'enrolled' | 'in_progress' | 'graduated' | 'dropped'
+
+// Academy interest areas
+export type AcademyInterestArea = 'fashion' | 'leather_goods' | 'beauty' | 'watches_jewelry' | 'hospitality'
+
 export interface CompensationProfile {
   current_base: number | null
   current_variable: number | null
@@ -78,7 +84,7 @@ export interface Talent {
   last_name: string
   phone: string | null
   linkedin_url: string | null
-  current_role_level: RoleLevel | null
+  current_role_level: RoleLevel | 'L0' | null  // L0 = no experience / academy candidate
   current_store_tier: StoreTier | null
   store_tier_experience: StoreTier[]  // New: multi-select store tiers
   years_in_luxury: number | null
@@ -102,6 +108,14 @@ export interface Talent {
   resubmit_count: number
   visible_to_current_brand: boolean
   internal_mobility_interest: boolean
+  // Academy fields for no-experience talents
+  is_academy_candidate: boolean
+  academy_interest_declared_at: string | null
+  academy_motivation: string | null
+  academy_status: AcademyStatus | null
+  academy_interest_areas: AcademyInterestArea[]
+  academy_enrolled_at: string | null
+  academy_graduation_date: string | null
   created_at: string
   updated_at: string
 }

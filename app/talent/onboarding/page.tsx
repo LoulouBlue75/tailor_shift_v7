@@ -10,15 +10,25 @@ import { StepDivisions } from './steps/step-divisions'
 import { StepPreferences } from './steps/step-preferences'
 import { StepCompensation } from './steps/step-compensation'
 import { StepDreamBrands } from './steps/step-dream-brands'
-import { Check } from 'lucide-react'
+import { StepAcademyTeaser } from './steps/step-academy-teaser'
+import { Check, GraduationCap } from 'lucide-react'
 
-const STEPS = [
+// Standard path steps for experienced talents
+const STANDARD_STEPS = [
   { id: 1, name: 'About you', description: "Let's start with the essentials" },
   { id: 2, name: 'Your experience', description: 'Where you stand today' },
   { id: 3, name: 'Your expertise', description: 'The areas you know best' },
   { id: 4, name: 'Your aspirations', description: 'Where you want to move next' },
   { id: 5, name: 'Compensation', description: 'Help us match you accurately' },
   { id: 6, name: 'Dream Brands', description: 'Where would you love to work?' },
+]
+
+// Academy path steps for no-experience talents
+const ACADEMY_STEPS = [
+  { id: 1, name: 'About you', description: "Let's start with the essentials" },
+  { id: 2, name: 'Your background', description: 'Tell us about your situation' },
+  { id: 3, name: 'Academy', description: 'Join TailorShift Academy' },
+  { id: 4, name: 'Dream Brands', description: 'Where would you love to work?' },
 ]
 
 export interface OnboardingData {
@@ -28,7 +38,7 @@ export interface OnboardingData {
   phone: string
   linkedin_url: string
   // Step 2: Professional
-  current_role_level: string
+  current_role_level: string  // 'L0' for no experience (Academy path)
   store_tier_experience: string[]  // Changed to array for multi-select
   years_in_luxury: number
   current_employer: string  // Renamed from current_maison to match DB column
@@ -57,6 +67,9 @@ export interface OnboardingData {
   current_variable: number | null
   // Step 6: Dream Brands
   target_brands: string[]
+  // Academy fields (for no-experience talents - L0)
+  academy_interest_areas: string[]  // Areas of interest: fashion, beauty, jewelry, etc.
+  academy_motivation: string  // Free-text motivation
 }
 
 const initialData: OnboardingData = {
@@ -90,6 +103,9 @@ const initialData: OnboardingData = {
   current_variable: null,  // Legacy field
   // Dream Brands defaults
   target_brands: [],
+  // Academy defaults
+  academy_interest_areas: [],
+  academy_motivation: '',
 }
 
 export default function TalentOnboardingPage() {
@@ -102,6 +118,13 @@ export default function TalentOnboardingPage() {
   const [error, setError] = useState<string | null>(null)
   const [talentId, setTalentId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [onboardingPath, setOnboardingPath] = useState<'standard' | 'academy'>('standard')
+  
+  // Determine which steps to show based on path
+  const STEPS = onboardingPath === 'academy' ? ACADEMY_STEPS : STANDARD_STEPS
+  
+  // Check if this is an academy candidate (L0 selected)
+  const isAcademyCandidate = data.current_role_level === 'L0'
 
   // Load existing talent data
   useEffect(() => {
@@ -169,11 +192,28 @@ export default function TalentOnboardingPage() {
           salary_flexibility: compensationProfile?.salary_flexibility || 'flexible',
           hide_exact_figures: compensationProfile?.hide_exact_figures ?? true,
           current_variable: compensationProfile?.current_variable ?? null,
+          // Academy fields
+          academy_interest_areas: talent.academy_interest_areas || [],
+          academy_motivation: talent.academy_motivation || '',
         })
+        
+        // Set path based on role level
+        if (talent.current_role_level === 'L0') {
+          setOnboardingPath('academy')
+        }
       }
     }
     loadTalentData()
   }, [supabase, router])
+  
+  // Handle path change when L0 is selected
+  useEffect(() => {
+    if (data.current_role_level === 'L0' && onboardingPath !== 'academy') {
+      setOnboardingPath('academy')
+    } else if (data.current_role_level && data.current_role_level !== 'L0' && onboardingPath !== 'standard') {
+      setOnboardingPath('standard')
+    }
+  }, [data.current_role_level, onboardingPath])
 
   const updateData = (updates: Partial<OnboardingData>) => {
     setData(prev => ({ ...prev, ...updates }))
@@ -202,64 +242,115 @@ export default function TalentOnboardingPage() {
       // Clean up target_locations before saving (remove empty strings)
       const cleanedTargetLocations = data.target_locations.filter(s => s !== '')
 
-      // Calculate profile completion
+      // Calculate profile completion differently for Academy vs Standard path
       let completion = 0
       if (data.first_name && data.last_name) completion += 20
-      if (data.current_role_level && data.store_tier_experience.length > 0) completion += 25
-      if (data.divisions_expertise.length > 0) completion += 25
-      if (data.target_role_levels.length > 0 && data.timeline) completion += 30
+      
+      if (isAcademyCandidate) {
+        // Academy path completion
+        if (data.current_location) completion += 20
+        if (data.academy_interest_areas.length > 0) completion += 30
+        if (data.target_brands.length > 0) completion += 30
+      } else {
+        // Standard path completion
+        if (data.current_role_level && data.store_tier_experience.length > 0) completion += 25
+        if (data.divisions_expertise.length > 0) completion += 25
+        if (data.target_role_levels.length > 0 && data.timeline) completion += 30
+      }
 
-      // Update talent record including compensation profile
+      // Build update object based on path
+      const updateData: Record<string, any> = {
+        first_name: data.first_name,
+        last_name: data.last_name,
+        phone: data.phone || null,
+        linkedin_url: data.linkedin_url || null,
+        current_role_level: data.current_role_level || null,
+        current_location: data.current_location || null,
+        profile_completion_pct: completion,
+        career_preferences: {
+          target_role_levels: isAcademyCandidate ? ['L1'] : data.target_role_levels,  // Academy talents target L1
+          target_locations: cleanedTargetLocations,
+          target_brands: data.target_brands,
+          mobility: data.mobility,
+          timeline: isAcademyCandidate ? 'passive' : data.timeline,  // Academy talents are passive until trained
+        },
+      }
+      
+      if (isAcademyCandidate) {
+        // Academy-specific fields
+        updateData.is_academy_candidate = true
+        updateData.academy_interest_declared_at = new Date().toISOString()
+        updateData.academy_status = 'interested'
+        updateData.academy_interest_areas = data.academy_interest_areas
+        updateData.academy_motivation = data.academy_motivation || null
+        updateData.years_in_luxury = 0
+        updateData.store_tier_experience = []
+        updateData.divisions_expertise = []
+        updateData.status = 'pending_review'  // Academy candidates also need review
+      } else {
+        // Standard path fields
+        updateData.store_tier_experience = data.store_tier_experience
+        updateData.years_in_luxury = data.years_in_luxury || null
+        updateData.current_employer = data.current_employer || null
+        updateData.divisions_expertise = data.divisions_expertise
+        updateData.is_academy_candidate = false
+        updateData.academy_status = null
+        // Detect internal mobility: if current employer is in target_brands
+        updateData.internal_mobility_interest = data.current_employer
+          ? data.target_brands.some(b => b.toLowerCase() === data.current_employer.toLowerCase())
+          : false
+        // Save enhanced compensation profile as JSONB (7 key fields for luxury retail matching)
+        updateData.compensation_profile = {
+          // Core 7 fields
+          contract_type: data.contract_type,
+          brand_segment: data.brand_segment,
+          compensation_region: data.compensation_region,
+          current_base: data.current_base,
+          variable_percentage: data.variable_percentage,
+          has_commission: data.has_commission,
+          commission_rate: data.commission_rate,
+          current_benefits: data.current_benefits,
+          // Additional fields
+          currency: data.currency,
+          expectations: data.expectations,
+          salary_flexibility: data.salary_flexibility,
+          hide_exact_figures: data.hide_exact_figures,
+          current_variable: data.current_variable,  // Legacy field
+        }
+        updateData.status = 'pending_review'
+      }
+
+      // Update talent record
       const { error: talentError } = await supabase
         .from('talents')
-        .update({
-          first_name: data.first_name,
-          last_name: data.last_name,
-          phone: data.phone || null,
-          linkedin_url: data.linkedin_url || null,
-          current_role_level: data.current_role_level || null,
-          store_tier_experience: data.store_tier_experience,
-          years_in_luxury: data.years_in_luxury || null,
-          current_employer: data.current_employer || null,  // Fixed: use current_employer
-          current_location: data.current_location || null,
-          divisions_expertise: data.divisions_expertise,
-          // Detect internal mobility: if current employer is in target_brands
-          internal_mobility_interest: data.current_employer
-            ? data.target_brands.some(b => b.toLowerCase() === data.current_employer.toLowerCase())
-            : false,
-          career_preferences: {
-            target_role_levels: data.target_role_levels,
-            target_locations: cleanedTargetLocations,
-            target_brands: data.target_brands,
-            mobility: data.mobility,
-            timeline: data.timeline,
-          },
-          // Save enhanced compensation profile as JSONB (7 key fields for luxury retail matching)
-          compensation_profile: {
-            // Core 7 fields
-            contract_type: data.contract_type,
-            brand_segment: data.brand_segment,
-            compensation_region: data.compensation_region,
-            current_base: data.current_base,
-            variable_percentage: data.variable_percentage,
-            has_commission: data.has_commission,
-            commission_rate: data.commission_rate,
-            current_benefits: data.current_benefits,
-            // Additional fields
-            currency: data.currency,
-            expectations: data.expectations,
-            salary_flexibility: data.salary_flexibility,
-            hide_exact_figures: data.hide_exact_figures,
-            current_variable: data.current_variable,  // Legacy field
-          },
-          status: 'pending_review',
-          profile_completion_pct: completion,
-        })
+        .update(updateData)
         .eq('profile_id', user.id)
 
       if (talentError) {
         console.error('Talent update error:', talentError)
         throw new Error(`Failed to update profile: ${talentError.message}`)
+      }
+      
+      // For Academy candidates, also create a waitlist entry
+      if (isAcademyCandidate && talentId) {
+        const { error: waitlistError } = await supabase
+          .from('academy_waitlist')
+          .upsert({
+            talent_id: talentId,
+            interest_areas: data.academy_interest_areas,
+            motivation_text: data.academy_motivation || null,
+            city: data.current_location?.split(',')[0]?.trim() || null,
+            country: data.current_location?.split(',')[1]?.trim() || null,
+            status: 'waitlisted',
+            source: 'onboarding',
+          }, {
+            onConflict: 'talent_id'
+          })
+        
+        if (waitlistError) {
+          console.error('Waitlist insert error:', waitlistError)
+          // Don't throw - waitlist is supplementary
+        }
       }
 
       // Update profile as onboarding completed
@@ -286,49 +377,86 @@ export default function TalentOnboardingPage() {
   }
 
   const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <StepIdentity data={data} updateData={updateData} />
-      case 2:
-        return <StepProfessional data={data} updateData={updateData} />
-      case 3:
-        return <StepDivisions data={data} updateData={updateData} />
-      case 4:
-        return <StepPreferences data={data} updateData={updateData} />
-      case 5:
-        return <StepCompensation data={data} updateData={updateData} />
-      case 6:
-        return <StepDreamBrands data={data} updateData={updateData} />
-      default:
-        return null
+    if (onboardingPath === 'academy') {
+      // Academy path rendering
+      switch (currentStep) {
+        case 1:
+          return <StepIdentity data={data} updateData={updateData} />
+        case 2:
+          return <StepProfessional data={data} updateData={updateData} />
+        case 3:
+          return <StepAcademyTeaser data={data} updateData={updateData} />
+        case 4:
+          return <StepDreamBrands data={data} updateData={updateData} />
+        default:
+          return null
+      }
+    } else {
+      // Standard path rendering
+      switch (currentStep) {
+        case 1:
+          return <StepIdentity data={data} updateData={updateData} />
+        case 2:
+          return <StepProfessional data={data} updateData={updateData} />
+        case 3:
+          return <StepDivisions data={data} updateData={updateData} />
+        case 4:
+          return <StepPreferences data={data} updateData={updateData} />
+        case 5:
+          return <StepCompensation data={data} updateData={updateData} />
+        case 6:
+          return <StepDreamBrands data={data} updateData={updateData} />
+        default:
+          return null
+      }
     }
   }
 
   const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return data.first_name.trim() !== '' && data.last_name.trim() !== ''
-      case 2:
-        return data.current_role_level !== '' && data.current_location.trim() !== ''
-      case 3:
-        return data.divisions_expertise.length > 0
-      case 4:
-        return data.timeline !== ''
-      case 5:
-        // Compensation step requires the 7 key fields (except commission which is optional)
-        // Required: contract_type, brand_segment, compensation_region, current_base, variable_percentage
-        return (
-          data.contract_type !== '' &&
-          data.brand_segment !== '' &&
-          data.compensation_region !== '' &&
-          data.current_base !== null &&
-          data.current_base > 0
-        )
-      case 6:
-        // Dream Brands is optional but recommended
-        return true
-      default:
-        return false
+    if (onboardingPath === 'academy') {
+      // Academy path validation
+      switch (currentStep) {
+        case 1:
+          return data.first_name.trim() !== '' && data.last_name.trim() !== ''
+        case 2:
+          // For L0 selection, just need role level and location
+          return data.current_role_level === 'L0' && data.current_location.trim() !== ''
+        case 3:
+          // Academy teaser - at least one interest area selected
+          return data.academy_interest_areas.length > 0
+        case 4:
+          // Dream Brands is optional but recommended
+          return true
+        default:
+          return false
+      }
+    } else {
+      // Standard path validation
+      switch (currentStep) {
+        case 1:
+          return data.first_name.trim() !== '' && data.last_name.trim() !== ''
+        case 2:
+          return data.current_role_level !== '' && data.current_role_level !== 'L0' && data.current_location.trim() !== ''
+        case 3:
+          return data.divisions_expertise.length > 0
+        case 4:
+          return data.timeline !== ''
+        case 5:
+          // Compensation step requires the 7 key fields (except commission which is optional)
+          // Required: contract_type, brand_segment, compensation_region, current_base, variable_percentage
+          return (
+            data.contract_type !== '' &&
+            data.brand_segment !== '' &&
+            data.compensation_region !== '' &&
+            data.current_base !== null &&
+            data.current_base > 0
+          )
+        case 6:
+          // Dream Brands is optional but recommended
+          return true
+        default:
+          return false
+      }
     }
   }
 
@@ -380,6 +508,8 @@ export default function TalentOnboardingPage() {
                   `}>
                     {currentStep > step.id ? (
                       <Check className="w-5 h-5" />
+                    ) : step.name === 'Academy' ? (
+                      <GraduationCap className="w-5 h-5" />
                     ) : (
                       step.id
                     )}

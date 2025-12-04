@@ -2,812 +2,476 @@
 
 > **Document de référence** : `PRODUCT_ROADMAP_V8.md`
 > 
-> Ce document centralise les idées et fonctionnalités à développer dans les futures versions de TailorShift. Il sert de backlog produit et de base de réflexion pour les évolutions à venir.
+> Ce document centralise la vision produit, les fonctionnalités implémentées et le backlog des évolutions futures de TailorShift.
+> 
+> **Dernière mise à jour** : 4 décembre 2025
+
+---
+
+## Vue d'Ensemble — Statut des Initiatives
+
+| Initiative | Statut | Phase | Documentation |
+|------------|--------|-------|---------------|
+| **Brand Domain Validation & RBAC** | ✅ Complété | V7.1 | [Section 1](#1-brand-rbac) |
+| **Compensation Collection (7 champs)** | ✅ Complété | V7.1 | [`COMPENSATION_COLLECTION_ARCHITECTURE.md`](./COMPENSATION_COLLECTION_ARCHITECTURE.md) |
+| **TailorShift Academy — No Experience Path** | ✅ Complété | V7.2 | [Section 2](#2-academy) |
+| **Academy Waitlist & Database** | ✅ Complété | V7.2 | [`PHASE2_ACADEMY_ARCHITECTURE.md`](./PHASE2_ACADEMY_ARCHITECTURE.md) |
+| Système de Nudges & Engagement | ⏳ Backlog | V8+ | [Section 3](#3-nudges) |
+| Rapports & Micropaiements | ⏳ Backlog | V8+ | [Section 4](#4-rapports) |
+| Brand Assessments Personnalisés | ⏳ Backlog | V8+ | [Section 5](#5-brand-assessments) |
+| Monétisation Brands | ⏳ Backlog | V8+ | [Section 6](#6-monetisation) |
+| Talent Identity Verification | ⏳ Différé | V8+ | [Section 7](#7-identity) |
 
 ---
 
 ## Table des Matières
 
-1. [Simplification UX & Architecture](#1-simplification)
-2. [Système de Nudges & Engagement](#2-nudges)
-3. [Rapports & Micropaiements](#3-rapports)
-4. [Brand Assessments Personnalisés](#4-brand-assessments)
-5. [Monétisation Brands & Activation](#5-monetisation)
-6. [Autres Idées](#6-autres)
+**✅ Implémenté**
+1. [Brand Domain Validation & RBAC](#1-brand-rbac)
+2. [TailorShift Academy — No Experience Path](#2-academy)
+
+**⏳ Backlog & Idées Futures**
+3. [Système de Nudges & Engagement](#3-nudges)
+4. [Rapports & Micropaiements](#4-rapports)
+5. [Brand Assessments Personnalisés](#5-brand-assessments)
+6. [Monétisation Brands & Activation](#6-monetisation)
+7. [Talent Identity Verification](#7-identity)
+8. [Simplification UX](#8-simplification)
+9. [Autres Idées](#9-autres)
 
 ---
 
-## 1. Simplification UX & Architecture {#1-simplification}
-
-### 1.1 Objectif
-
-Reprendre l'ensemble de la logique du site dans une optique d'**optimisation et simplification**, tout en conservant le même niveau de richesse et de complexité fonctionnelle.
-
-### 1.2 Principes Directeurs
-
-```
-Complexité fonctionnelle ≠ Complexité perçue
-```
-
-- **Réduire le nombre d'écrans** sans réduire les fonctionnalités
-- **Progressive disclosure** : Montrer l'essentiel, cacher les détails avancés
-- **Smart defaults** : Pré-remplir intelligemment pour réduire la charge cognitive
-- **One-click actions** : Maximiser les actions réalisables en un clic
-
-### 1.3 Axes d'Analyse
-
-| Zone | Questions à se poser | Métriques |
-|------|---------------------|-----------|
-| Onboarding Talent | Peut-on réduire les steps ? Fusionner des écrans ? | Temps de complétion, dropout rate |
-| Onboarding Brand | Même question côté brand | Idem |
-| Dashboard Talent | Quelles infos sont réellement consultées ? | Heatmap, scroll depth |
-| Dashboard Brand | Idem | Idem |
-| Formulaire Experience | 10 dimensions StoreContext : lesquelles sont vraiment utilisées ? | Fill rate par champ |
-| Assessment | 6 dimensions : peut-on raccourcir sans perdre en précision ? | Temps de complétion |
-
-### 1.4 Actions Potentielles
-
-- [ ] **Audit UX complet** avec analytics (Hotjar, Mixpanel)
-- [ ] **A/B test** sur onboarding simplifié vs actuel
-- [ ] **Consolidation des écrans** : Dashboard + Profile en une seule vue
-- [ ] **Wizard vs Form** : Tester les deux approches
-- [ ] **Mobile-first redesign** : Prioriser l'expérience mobile
-
-### 1.5 Questions Ouvertes
-
-- Faut-il un mode "Express" (5 champs) vs "Complet" (tous les champs) ?
-- Peut-on inférer des informations plutôt que les demander ? (ex: segment de marque basé sur l'employeur)
-- Quel est le minimum viable pour un premier match ?
+# ✅ FONCTIONNALITÉS IMPLÉMENTÉES
 
 ---
 
-## 2. Système de Nudges & Engagement {#2-nudges}
+## 1. Brand Domain Validation & RBAC {#1-brand-rbac}
 
-### 2.1 Objectif
+> **Statut** : ✅ Complété (4 décembre 2024)
+> **Migration** : [`003_brand_rbac_system.sql`](../supabase/migrations/003_brand_rbac_system.sql)
 
-Mettre en place des **incitations comportementales** (nudges) pour maximiser :
-- La **complétude des profils** (Talent & Brand)
-- L'**engagement** sur la plateforme
-- La **qualité des données** collectées
+### 1.1 Domain Validation System
 
-### 2.2 Framework de Nudges
+Validation automatique des emails lors de l'onboarding brand :
+
+| Type de domaine | Action | Exemples |
+|-----------------|--------|----------|
+| **Personal** | ❌ Rejeté | gmail.com, yahoo.com, hotmail.com |
+| **Luxury Brand** | ✅ Auto-validé | lvmh.com, kering.com, hermes.com |
+| **Corporate** | ⏳ Admin review | autre-entreprise.com |
+
+**Fichiers** :
+- [`lib/auth/domain-validation.ts`](../lib/auth/domain-validation.ts) - Validation engine
+- [`app/brand/onboarding/page.tsx`](../app/brand/onboarding/page.tsx) - Integration UI
+
+### 1.2 Système RBAC (8 Rôles)
+
+| Rôle | Permissions | Cas d'usage |
+|------|-------------|-------------|
+| `owner` | Toutes | Fondateur, CEO |
+| `admin_global` | Toutes sauf ownership | Head of HR/IT |
+| `admin_brand` | Gestion brand | Brand manager |
+| `hr_global` | Recrutement + analytics | HR director |
+| `hr_regional` | Recrutement région | Regional HR |
+| `recruiter` | Recrutement basique | Store recruiters |
+| `manager_store` | View + contact | Store managers |
+| `viewer` | Read-only | Trainees, auditors |
+
+**7 Permissions** : `manage_team`, `manage_brand_profile`, `create_opportunities`, `view_matches`, `contact_talents`, `view_analytics`, `manage_assessments`
+
+**Fichiers** :
+- [`lib/auth/brand-rbac.ts`](../lib/auth/brand-rbac.ts) - RBAC implementation
+- [`app/brand/team/page.tsx`](../app/brand/team/page.tsx) - Team management UI
+
+---
+
+## 2. TailorShift Academy — No Experience Path {#2-academy}
+
+> **Statut** : ✅ Complété (4 décembre 2024)
+> **Migration** : [`004_academy_candidate_fields.sql`](../supabase/migrations/004_academy_candidate_fields.sql)
+> **Architecture détaillée** : [`PHASE2_ACADEMY_ARCHITECTURE.md`](./PHASE2_ACADEMY_ARCHITECTURE.md)
+
+### 2.1 Problème Résolu
+
+Les talents **sans expérience retail** qui souhaitent intégrer le secteur luxe ne pouvaient pas compléter l'onboarding standard. Ils abandonnaient à Step 2.
+
+### 2.2 Solution : Parcours Branché
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  STEP 1: Identity (commun)                                                  │
+│      ↓                                                                      │
+│  STEP 2: Professional                                                       │
+│      │                                                                      │
+│      ├─── L1-L8 sélectionné ──→ Parcours Standard (6 steps)                │
+│      │                            ↓                                         │
+│      │                         Divisions → Preferences → Compensation       │
+│      │                            → Dream Brands → Dashboard                │
+│      │                                                                      │
+│      └─── L0 "New to Retail" ──→ Parcours Academy (4 steps)                │
+│                                    ↓                                        │
+│                                 Academy Teaser → Dream Brands              │
+│                                    → Dashboard Waitlist                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.3 L0 — Option "New to Retail"
+
+Nouvelle option mise en avant dans Step 2 :
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  🌟 NEW TO RETAIL LUXURY?                                           │
+│                                                                     │
+│  I don't have retail experience yet, but I'm interested            │
+│  in starting a career in luxury retail.                            │
+│                                                                     │
+│  → You'll be added to TailorShift Academy waitlist                 │
+│                                                              [✓]   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Fichier** : [`app/talent/onboarding/steps/step-professional.tsx`](../app/talent/onboarding/steps/step-professional.tsx)
+
+### 2.4 Academy Teaser Step
+
+Écran présentant Academy aux talents L0 :
+- Message de bienvenue
+- 4 bénéfices (Training, Brand Culture, Career Prep, Connections)
+- Sélection des domaines d'intérêt (Fashion, Leather, Beauty, Watches, Hospitality)
+- Motivation optionnelle (texte libre)
+
+**Fichier** : [`app/talent/onboarding/steps/step-academy-teaser.tsx`](../app/talent/onboarding/steps/step-academy-teaser.tsx)
+
+### 2.5 Schema Base de Données
+
+**Nouveaux champs sur `talents`** :
+```sql
+is_academy_candidate BOOLEAN DEFAULT FALSE
+academy_status VARCHAR(30)  -- interested, waitlisted, enrolled, graduated
+academy_interest_areas TEXT[]  -- fashion, leather_goods, beauty, watches_jewelry, hospitality
+academy_motivation TEXT
+academy_interest_declared_at TIMESTAMP
+```
+
+**Nouvelle table `academy_waitlist`** :
+```sql
+CREATE TABLE academy_waitlist (
+  id UUID PRIMARY KEY,
+  talent_id UUID REFERENCES talents(id),
+  interest_areas TEXT[],
+  motivation_text TEXT,
+  status VARCHAR(30),  -- waitlisted, invited, accepted
+  ...
+);
+```
+
+### 2.6 Données Collectées
+
+| Champ | Profil Standard | Profil Academy L0 |
+|-------|-----------------|-------------------|
+| Identity (nom, tel, LinkedIn) | ✅ | ✅ |
+| Location | ✅ | ✅ |
+| Role Level | L1-L8 | L0 |
+| Store Tiers | ✅ | ❌ Skip |
+| Years in Luxury | ✅ | ❌ (= 0) |
+| Divisions Expertise | ✅ | ❌ Skip |
+| Compensation | ✅ (7 champs) | ❌ Skip |
+| Academy Interest Areas | N/A | ✅ |
+| Academy Motivation | N/A | ✅ Optional |
+| Dream Brands | ✅ | ✅ |
+
+### 2.7 Prochaines Étapes (Phase 3)
+
+| Phase | Scope | Statut |
+|-------|-------|--------|
+| ✅ 2A | No Experience Path + L0 option | Complété |
+| ✅ 2B | Academy DB schema + waitlist | Complété |
+| ⏳ 3A | Academy modules & content | Planifié |
+| ⏳ 3B | Progress tracking & certifications | Planifié |
+| ⏳ 3C | Dashboard Academy-wait | Planifié |
+| ⏳ 3D | Admin waitlist management | Planifié |
+
+---
+
+# ⏳ BACKLOG & IDÉES FUTURES
+
+---
+
+## 3. Système de Nudges & Engagement {#3-nudges}
+
+> **Statut** : ⏳ Backlog
+> **Priorité** : Moyenne
+> **Complexité** : Moyenne
+
+### 3.1 Objectif
+
+Incitations comportementales pour maximiser :
+- Complétude des profils (Talent & Brand)
+- Engagement sur la plateforme
+- Qualité des données collectées
+
+### 3.2 Framework
 
 ```mermaid
 flowchart LR
-    subgraph Trigger[Déclencheurs]
-        Login[Login]
+    subgraph Trigger
+        Login
         Time[Temps passé]
-        Action[Action réalisée]
-        Inaction[Inaction détectée]
+        Action
+        Inaction
     end
     
-    subgraph Nudge[Types de Nudges]
-        Progress[Barre de progression]
+    subgraph Nudge
+        Progress[Barre progression]
         Social[Preuve sociale]
-        Scarcity[Rareté/Urgence]
+        Scarcity[Urgence]
         Reward[Récompense]
-        Reminder[Rappel]
     end
     
-    subgraph Outcome[Résultats attendus]
+    subgraph Outcome
         Complete[Profil complet]
-        Engage[Engagement accru]
-        Quality[Données de qualité]
+        Engage[Engagement]
+        Quality[Données qualité]
     end
     
     Trigger --> Nudge --> Outcome
 ```
 
-### 2.3 Nudges Côté Talent
+### 3.3 Nudges Côté Talent
 
-| Nudge | Déclencheur | Message | Impact attendu |
-|-------|-------------|---------|----------------|
-| **Progress Ring** | Login | "Votre profil est complet à 67%" | +20% complétion |
-| **Match Potential** | Profil incomplet | "Complétez votre expérience pour débloquer 12 opportunités" | +15% complétion |
-| **Peer Comparison** | Après Assessment | "Vous êtes dans le top 15% en Clienteling" | +10% engagement |
-| **Dream Brand Alert** | Nouvelle opportunité | "Hermès, votre Dream Brand #1, recrute !" | +30% réponse |
-| **Expiring Opportunity** | 48h avant deadline | "Cette opportunité expire dans 48h" | +25% action |
-| **Skill Gap Coach** | Post-assessment | "Améliorez votre score Leadership avec ce module" | +20% learning |
-| **Profile Views** | Hebdomadaire | "3 recruteurs ont vu votre profil cette semaine" | +15% engagement |
-| **Success Stories** | Onboarding | "Marie a trouvé son poste chez Dior en 3 semaines" | +10% confiance |
+| Nudge | Déclencheur | Message | Impact |
+|-------|-------------|---------|--------|
+| Progress Ring | Login | "Profil complet à 67%" | +20% complétion |
+| Match Potential | Profil incomplet | "12 opportunités à débloquer" | +15% complétion |
+| Dream Brand Alert | Nouvelle opportunité | "Hermès recrute !" | +30% réponse |
+| Profile Views | Hebdomadaire | "3 recruteurs vous ont vu" | +15% engagement |
 
-### 2.4 Nudges Côté Brand
+### 3.4 Gamification
 
-| Nudge | Déclencheur | Message | Impact attendu |
-|-------|-------------|---------|----------------|
-| **Talent Pool Size** | Post-opportunité | "127 talents matchent avec cette offre" | +20% precision offre |
-| **Response Rate** | Offre active | "Taux de réponse moyen : 72% en 48h" | Attentes réalistes |
-| **Competitive Intel** | Dashboard | "3 autres marques recrutent pour ce profil" | +15% réactivité |
-| **Dream Brand Stats** | Dashboard | "18 talents vous ont mis en Dream Brand" | +25% engagement |
-| **Hiring Velocity** | Post-hire | "Temps moyen de recrutement : 23 jours" | Benchmark |
-| **Profile Quality** | Revue candidat | "Profil vérifié, Assessment top 10%" | +30% confiance |
-
-### 2.5 Techniques de Gamification
-
-- **Badges & Achievements** : "Profile Master", "Quick Responder", "Top Performer"
-- **Leaderboards** (anonymisés) : Position relative dans le matching
-- **Streaks** : "5 jours consécutifs connecté"
-- **Unlocks** : Fonctionnalités débloquées selon complétion
-
-### 2.6 Implémentation Technique
-
-```typescript
-// lib/nudges/engine.ts
-
-interface NudgeRule {
-  id: string
-  trigger: 'login' | 'action' | 'inaction' | 'time' | 'event'
-  conditions: NudgeCondition[]
-  message: NudgeMessage
-  priority: number
-  frequency: 'once' | 'daily' | 'weekly' | 'always'
-  target_user_type: 'talent' | 'brand' | 'all'
-}
-
-interface NudgeCondition {
-  field: string
-  operator: 'lt' | 'gt' | 'eq' | 'contains' | 'missing'
-  value: any
-}
-
-interface NudgeMessage {
-  type: 'toast' | 'banner' | 'modal' | 'email' | 'push'
-  title: string
-  body: string
-  cta?: { label: string; action: string }
-  icon?: string
-}
-
-// Exemple de règle
-const profileCompletionNudge: NudgeRule = {
-  id: 'profile_completion_70',
-  trigger: 'login',
-  conditions: [
-    { field: 'profile_completion_pct', operator: 'lt', value: 70 },
-    { field: 'last_nudge_shown', operator: 'gt', value: '24h_ago' },
-  ],
-  message: {
-    type: 'banner',
-    title: 'Complétez votre profil',
-    body: 'Vous êtes à {completion}%. Ajoutez votre expérience pour débloquer plus d\'opportunités.',
-    cta: { label: 'Compléter', action: '/talent/profile/edit' },
-    icon: 'trending_up',
-  },
-  priority: 80,
-  frequency: 'daily',
-  target_user_type: 'talent',
-}
-```
-
-### 2.7 Mesure d'Impact
-
-- **A/B Testing** systématique sur chaque nudge
-- **Cohort Analysis** : Comparer comportement avec/sans nudge
-- **Fatigue Monitoring** : Détecter quand les nudges deviennent contre-productifs
+- **Badges** : "Profile Master", "Quick Responder", "Top Performer"
+- **Leaderboards** anonymisés
+- **Streaks** : "5 jours consécutifs"
+- **Unlocks** : Fonctionnalités selon complétion
 
 ---
 
-## 3. Rapports & Micropaiements {#3-rapports}
+## 4. Rapports & Micropaiements {#4-rapports}
 
-### 3.1 Vision
+> **Statut** : ⏳ Backlog
+> **Priorité** : Haute (monétisation B2C)
+> **Complexité** : Haute
 
-Proposer des **rapports premium payants** pour les talents, comme valeur ajoutée et source de revenus complémentaire.
+### 4.1 Types de Rapports Envisagés
 
-### 3.2 Types de Rapports Envisagés
+| Rapport | Description | Prix cible |
+|---------|-------------|------------|
+| **Assessment Report PDF** | Analyse 6D + recommandations | 9.90€ - 19.90€ |
+| **Market Position** | Comparaison anonymisée | 14.90€ |
+| **Salary Benchmark** | Fourchette personnalisée | 9.90€ |
+| **Career Path Analysis** | Prédiction trajectoire | 19.90€ |
+| **Brand Compatibility** | Fit avec top 10 maisons | 14.90€ |
 
-| Rapport | Description | Prix cible | Priorité |
-|---------|-------------|------------|----------|
-| **Assessment Report PDF** | Analyse détaillée des 6 dimensions + recommandations | 9.90€ - 19.90€ | P1 |
-| **Market Position Report** | Comparaison anonymisée avec le marché | 14.90€ | P2 |
-| **Salary Benchmark** | Fourchette salariale personnalisée selon profil | 9.90€ | P2 |
-| **Career Path Analysis** | Prédiction de trajectoire + recommandations | 19.90€ | P3 |
-| **Brand Compatibility** | Analyse de fit avec les top 10 maisons | 14.90€ | P3 |
-
-### 3.3 Contenu du Rapport Assessment
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    TAILOR SHIFT                                      │
-│                    ASSESSMENT REPORT                                 │
-│                                                                     │
-│  Préparé pour: Marie Dupont                                         │
-│  Date: 4 décembre 2024                                              │
-│  ID: TS-ASS-2024-0847                                               │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  PROFIL 6D - VUE D'ENSEMBLE                                        │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │          Product Knowledge: ████████░░ 78%                 │    │
-│  │          Clienteling:       █████████░ 92%  ★ EXCELLENCE   │    │
-│  │          Cultural Fluency:  ███████░░░ 71%                 │    │
-│  │          Sales Performance: ████████░░ 85%                 │    │
-│  │          Leadership:        █████░░░░░ 54%  ⚠ À DÉVELOPPER │    │
-│  │          Operations:        ██████░░░░ 67%                 │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                                                                     │
-│  NIVEAU GLOBAL: PROFICIENT (Top 25%)                               │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  POINTS FORTS                                                       │
-│  • Excellente maîtrise du clienteling VIC                          │
-│  • Forte capacité de conversion (85% sales perf)                   │
-│  • Connaissance produit au-dessus de la moyenne                    │
-│                                                                     │
-│  AXES DE DÉVELOPPEMENT                                             │
-│  • Leadership : compétences managériales à renforcer               │
-│  • Operations : process et KPIs à approfondir                      │
-│                                                                     │
-│  RECOMMANDATIONS PERSONNALISÉES                                    │
-│  1. Module "Management in Luxury Retail" (2h) → Leadership +15%    │
-│  2. Certification "Store Operations Excellence" → Operations +20%  │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  MARQUES COMPATIBLES                                               │
-│  Basé sur votre profil, vous matchez particulièrement avec :       │
-│  • Dior (92% fit)                                                  │
-│  • Louis Vuitton (89% fit)                                         │
-│  • Gucci (87% fit)                                                 │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  Ce rapport est généré automatiquement par TailorShift.            │
-│  www.tailorshift.co | contact@tailorshift.co                       │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 3.4 Architecture Technique - Stripe Integration
+### 4.2 Architecture Stripe
 
 ```mermaid
 sequenceDiagram
-    actor Talent
-    participant App as TailorShift
-    participant Stripe
-    participant PDF as PDF Generator
-    participant S3 as Storage
-    
-    Talent->>App: Demande rapport Assessment
-    App->>App: Vérifier si rapport déjà acheté
-    
-    alt Nouveau achat
-        App->>Stripe: Create Checkout Session
-        Stripe-->>App: Session URL
-        App-->>Talent: Redirect to Stripe Checkout
-        Talent->>Stripe: Paiement
-        Stripe->>App: Webhook payment_intent.succeeded
-        App->>PDF: Générer rapport PDF
-        PDF->>S3: Stocker PDF
-        S3-->>App: URL signée
-        App-->>Talent: Email avec lien téléchargement
-    else Déjà acheté
-        App->>S3: Récupérer PDF existant
-        S3-->>App: URL signée
-        App-->>Talent: Téléchargement direct
-    end
+    Talent->>App: Demande rapport
+    App->>Stripe: Create Checkout
+    Talent->>Stripe: Paiement
+    Stripe->>App: Webhook succeeded
+    App->>PDF: Générer rapport
+    App->>Talent: Email + téléchargement
 ```
 
-### 3.5 Tables DB Nécessaires
+### 4.3 Modèle Freemium
 
-```sql
--- Purchases tracking
-CREATE TABLE purchases (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES profiles(id),
-  product_type VARCHAR(50) NOT NULL, -- 'assessment_report', 'salary_benchmark', etc.
-  product_id UUID, -- Référence vers l'item spécifique si applicable
-  stripe_payment_intent_id VARCHAR(255),
-  stripe_checkout_session_id VARCHAR(255),
-  amount_cents INTEGER NOT NULL,
-  currency VARCHAR(3) DEFAULT 'EUR',
-  status VARCHAR(20) DEFAULT 'pending', -- pending, completed, refunded
-  metadata JSONB DEFAULT '{}',
-  purchased_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Generated reports storage
-CREATE TABLE generated_reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  purchase_id UUID REFERENCES purchases(id),
-  talent_id UUID REFERENCES talents(id),
-  report_type VARCHAR(50) NOT NULL,
-  storage_path VARCHAR(500), -- S3 path
-  generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  expires_at TIMESTAMP WITH TIME ZONE, -- URL expiration
-  download_count INTEGER DEFAULT 0
-);
-```
-
-### 3.6 Modèle Freemium
-
-| Fonctionnalité | Gratuit | Premium (rapport) |
-|----------------|---------|-------------------|
+| Fonctionnalité | Gratuit | Premium |
+|----------------|---------|---------|
 | Score global | ✅ | ✅ |
 | Radar 6D basique | ✅ | ✅ |
-| Analyse détaillée par dimension | ❌ | ✅ |
-| Recommandations personnalisées | ❌ | ✅ |
-| Benchmark marché | ❌ | ✅ |
+| Analyse détaillée | ❌ | ✅ |
+| Recommandations | ❌ | ✅ |
 | PDF téléchargeable | ❌ | ✅ |
-| Marques compatibles | Top 3 | Top 10 |
-
-### 3.7 Badges d'Assessments Spécifiques (Côté Talent)
-
-Le profil talent affichera les **assessments spécifiques passés pour des marques** sous forme de badges :
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  VOS CERTIFICATIONS MARQUES                                  │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  🏅 Louis Vuitton Assessment    ✓ Passé le 15/11/2024       │
-│     Score: 87/100 - Niveau: Expert                          │
-│     [Télécharger certificat PDF]                            │
-│                                                              │
-│  🏅 Dior Culture Quiz           ✓ Passé le 02/12/2024       │
-│     Score: 92/100 - Niveau: Expert                          │
-│     [Télécharger certificat PDF]                            │
-│                                                              │
-│  ⏳ Hermès Assessment           En attente d'invitation      │
-│     [Demander l'accès]                                       │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-**Valeur ajoutée :**
-- Montre l'engagement du talent envers des marques spécifiques
-- Différencie les candidats lors du matching
-- Crée un historique de certifications vérifiables
-- Peut être partagé (LinkedIn, CV) via URL publique
 
 ---
 
-## 4. Brand Assessments Personnalisés {#4-brand-assessments}
+## 5. Brand Assessments Personnalisés {#5-brand-assessments}
 
-### 4.1 Vision
+> **Statut** : ⏳ Backlog
+> **Priorité** : Moyenne
+> **Complexité** : Haute
 
-Permettre aux marques de créer leurs **propres assessments personnalisés**, en complément de l'assessment TailorShift 6D générique.
+### 5.1 Vision
 
-### 4.2 Types d'Assessments Marque
+Permettre aux marques de créer leurs propres assessments en complément du 6D TailorShift.
 
-| Type | Description | Exemples |
-|------|-------------|----------|
-| **Culture Quiz** | Questions sur l'ADN, histoire, valeurs de la marque | "En quelle année Hermès a créé le Kelly bag ?" |
-| **Scénarios Situationnels** | Mise en situation spécifique à la marque | "Un client VIC demande un article épuisé..." |
-| **Connaissance Produit** | Quiz sur les collections, matériaux, savoir-faire | "Quel cuir est utilisé pour le Birkin ?" |
-| **Video Pitch** | Réponse vidéo à une question de la marque | "Présentez-vous en 60s comme si c'était un entretien" |
+### 5.2 Types d'Assessments
 
-### 4.3 Brand Assessment Builder (Côté Brand)
+| Type | Description |
+|------|-------------|
+| Culture Quiz | Histoire, valeurs, ADN de la marque |
+| Scénarios Situationnels | Mise en situation client |
+| Connaissance Produit | Collections, matériaux, savoir-faire |
+| Video Pitch | Réponse vidéo 60s |
 
-Interface permettant aux marques de créer leurs assessments :
+### 5.3 Badges & Certifications
 
-```mermaid
-flowchart TB
-    subgraph Builder[Assessment Builder]
-        Create[Créer Assessment]
-        Questions[Ajouter Questions]
-        Config[Configurer]
-        Preview[Prévisualiser]
-        Publish[Publier]
-    end
-    
-    subgraph QuestionTypes[Types de Questions]
-        MCQ[QCM]
-        Scale[Échelle 1-10]
-        Open[Réponse ouverte]
-        Video[Réponse vidéo]
-        Situational[Scénario situationnel]
-    end
-    
-    subgraph Config_Options[Configuration]
-        Duration[Durée max]
-        PassingScore[Score minimum]
-        Mandatory[Obligatoire pour postuler ?]
-        Expiry[Durée de validité]
-    end
-    
-    Create --> Questions
-    QuestionTypes --> Questions
-    Questions --> Config
-    Config_Options --> Config
-    Config --> Preview --> Publish
-```
-
-### 4.4 Interface Brand - Création d'Assessment
+Les talents peuvent afficher sur leur profil les assessments marques passés :
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  BRAND > ASSESSMENTS > Nouveau                                       │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  📝 INFORMATIONS GÉNÉRALES                                         │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  Nom: Culture Quiz Louis Vuitton                            │   │
-│  │  Description: Testez vos connaissances sur l'univers LV     │   │
-│  │  Durée estimée: 15 minutes                                   │   │
-│  │  Score minimum: 70%                                          │   │
-│  │  ☑ Obligatoire pour postuler à nos offres                   │   │
-│  │  ☐ Valide 6 mois après passage                              │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  📋 QUESTIONS (8)                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  1. [QCM] En quelle année Louis Vuitton a-t-il été fondé ?  │   │
-│  │     a) 1821  b) 1854 ✓  c) 1892  d) 1901                    │   │
-│  │     Points: 10                                               │   │
-│  │     [Modifier] [Supprimer] [↑] [↓]                          │   │
-│  ├─────────────────────────────────────────────────────────────┤   │
-│  │  2. [Situationnel] Un client demande le Keepall 55 qui...   │   │
-│  │     → Réponse ouverte évaluée par IA                        │   │
-│  │     Points: 20                                               │   │
-│  │     [Modifier] [Supprimer] [↑] [↓]                          │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  [+ Ajouter une question]                                          │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  [Prévisualiser]  [Enregistrer brouillon]  [Publier]               │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+🏅 Louis Vuitton Assessment    ✓ Passé le 15/11/2024
+   Score: 87/100 - Niveau: Expert
 ```
 
-### 4.5 Scénario d'Invitation Automatique
+### 5.4 Invitation Automatique
 
-**Trigger :** Quand une brand ouvre une position, le système identifie les talents "high potential" et leur propose proactivement de passer l'assessment de la marque.
-
-```mermaid
-sequenceDiagram
-    actor Brand
-    participant System as TailorShift
-    participant Talent
-    
-    Brand->>System: Crée nouvelle opportunité
-    System->>System: Identifier talents high-potential
-    
-    Note over System: Critères high-potential:
-    Note over System: - Dream Brand match
-    Note over System: - Score 6D >= 70%
-    Note over System: - Role level compatible
-    Note over System: - Location compatible
-    
-    System->>System: Filtrer talents n'ayant pas passé<br/>l'assessment de la marque
-    
-    loop Pour chaque talent éligible
-        System->>Talent: Notification: Hermès recrute !
-        Note over Talent: Votre Dream Brand #1 a ouvert<br/>une position qui vous correspond.
-        Note over Talent: Passez l'assessment Hermès<br/>pour être prioritaire.
-        
-        alt Talent accepte
-            Talent->>System: Commence assessment marque
-            Talent->>System: Termine assessment
-            System->>System: Ajouter badge au profil
-            System->>System: Boost match score +10
-            System->>Brand: Notifier: Nouveau candidat qualifié
-        else Talent décline
-            Talent->>System: Pas maintenant
-            System->>System: Ne plus proposer pour cette offre
-        end
-    end
-```
-
-### 4.6 Critères d'Invitation Automatique
-
-```typescript
-interface AutoInviteCriteria {
-  // Conditions obligatoires
-  is_dream_brand: boolean           // La marque est dans les Dream Brands du talent
-  role_level_compatible: boolean    // Niveau du talent ± 1 niveau requis
-  
-  // Conditions de score
-  tailor_shift_assessment: {
-    completed: boolean
-    min_overall_score: number       // 70% minimum
-  }
-  
-  // Conditions géographiques
-  location_match: 'exact' | 'national' | 'international'
-  
-  // Exclusions
-  already_passed_brand_assessment: boolean  // false pour être invité
-  declined_invitation_recently: boolean     // false (< 30 jours)
-}
-
-// Exemple de règle d'invitation
-const hermesCriteria: AutoInviteCriteria = {
-  is_dream_brand: true,
-  role_level_compatible: true,  // L4-L6 pour un poste L5
-  tailor_shift_assessment: {
-    completed: true,
-    min_overall_score: 75,      // Hermès est plus exigeant
-  },
-  location_match: 'national',
-  already_passed_brand_assessment: false,
-  declined_invitation_recently: false,
-}
-```
-
-### 4.7 Bénéfices pour les Parties Prenantes
-
-| Partie | Bénéfice |
-|--------|----------|
-| **Talent** | Accès prioritaire aux opportunités de leur Dream Brand |
-| **Brand** | Pipeline de candidats pré-qualifiés et motivés |
-| **TailorShift** | Meilleur engagement, différenciation concurrentielle |
-
-### 4.8 Message d'Invitation (Email/Push)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                                                                     │
-│  🌟 OPPORTUNITÉ EXCLUSIVE                                          │
-│                                                                     │
-│  Bonjour Marie,                                                    │
-│                                                                     │
-│  Votre Dream Brand #1, Hermès, vient d'ouvrir une position         │
-│  qui correspond parfaitement à votre profil !                       │
-│                                                                     │
-│  📍 Store Manager - Flagship Paris                                 │
-│  💰 Salaire: dans votre fourchette                                 │
-│  📊 Match score: 89%                                                │
-│                                                                     │
-│  ─────────────────────────────────────────────────────────────────  │
-│                                                                     │
-│  Pour maximiser vos chances et montrer votre engagement,           │
-│  passez l'Assessment Culture Hermès (15 min).                      │
-│                                                                     │
-│  Les candidats ayant complété l'assessment sont                    │
-│  contactés en priorité par les recruteurs.                         │
-│                                                                     │
-│  [🎯 Passer l'Assessment maintenant]                               │
-│                                                                     │
-│  [Plus tard]  [Ne plus me proposer pour cette offre]               │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 4.9 Tables DB pour Brand Assessments
-
-```sql
--- Assessments créés par les brands (existe déjà partiellement)
--- Enrichir avec:
-ALTER TABLE brand_assessments ADD COLUMN auto_invite_enabled BOOLEAN DEFAULT true;
-ALTER TABLE brand_assessments ADD COLUMN auto_invite_min_ts_score INTEGER DEFAULT 70;
-ALTER TABLE brand_assessments ADD COLUMN validity_days INTEGER DEFAULT 180;
-ALTER TABLE brand_assessments ADD COLUMN is_mandatory_for_apply BOOLEAN DEFAULT false;
-
--- Invitations envoyées
-CREATE TABLE brand_assessment_invitations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  talent_id UUID REFERENCES talents(id),
-  assessment_id UUID REFERENCES brand_assessments(id),
-  opportunity_id UUID REFERENCES opportunities(id),
-  status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, declined, completed, expired
-  invited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  responded_at TIMESTAMP WITH TIME ZONE,
-  completed_at TIMESTAMP WITH TIME ZONE,
-  score INTEGER,
-  passed BOOLEAN,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Index pour les requêtes fréquentes
-CREATE INDEX idx_invitations_talent_status ON brand_assessment_invitations(talent_id, status);
-CREATE INDEX idx_invitations_assessment ON brand_assessment_invitations(assessment_id);
-```
+Quand une brand ouvre une position, le système invite proactivement les talents "high potential" :
+- Dream Brand match ✅
+- Score 6D >= 70% ✅
+- Role level compatible ✅
+- Location compatible ✅
 
 ---
 
-## 5. Monétisation Brands & Activation {#5-monetisation}
+## 6. Monétisation Brands & Activation {#6-monetisation}
 
-### 4.1 Modèle de Validation Brand
+> **Statut** : ⏳ Backlog
+> **Priorité** : Haute
+> **Complexité** : Moyenne
+
+### 6.1 Workflow Brand
 
 ```mermaid
 stateDiagram-v2
-    [*] --> signup: Brand s'inscrit
-    signup --> pending_verification: Formulaire complété
-    pending_verification --> verified: Admin valide l'identité
+    [*] --> signup
+    signup --> pending_verification
+    pending_verification --> verified: Admin valide
     verified --> pending_payment: Contrat signé
     pending_payment --> active: Paiement reçu
-    active --> suspended: Non-paiement / Violation
-    suspended --> active: Régularisation
-    
-    note right of pending_verification
-        Vérification:
-        - Email domaine
-        - LinkedIn contact
-        - Site web officiel
-    end note
-    
-    note right of pending_payment
-        Conditions commerciales:
-        - Tarification convenue
-        - Méthode paiement
-        - Engagement durée
-    end note
+    active --> suspended: Non-paiement
 ```
 
-### 4.2 Statuts Brand
+### 6.2 Statuts Brand
 
-```typescript
-type BrandStatus = 
-  | 'onboarding'           // En cours d'inscription
-  | 'pending_verification' // En attente validation identité
-  | 'verified'             // Identité validée, en attente contrat
-  | 'pending_payment'      // Contrat signé, en attente paiement
-  | 'active'               // Pleinement opérationnel
-  | 'suspended'            // Suspendu (non-paiement, violation)
-  | 'churned'              // Résilié
-```
+| Statut | Accès Dashboard | Créer Opportunités | Voir Matches | Contacter |
+|--------|-----------------|-------------------|--------------|-----------|
+| onboarding | Limité | ❌ | ❌ | ❌ |
+| verified | Limité | ❌ | ❌ | ❌ |
+| pending_payment | Limité | ❌ | ❌ | ❌ |
+| active | ✅ Complet | ✅ | ✅ | ✅ |
+| suspended | ❌ | ❌ | ❌ | ❌ |
 
-### 4.3 Contrôle d'Accès par Statut
+### 6.3 Options de Monétisation
 
-| Fonctionnalité | onboarding | verified | pending_payment | active | suspended |
-|----------------|------------|----------|-----------------|--------|-----------|
-| Compléter profil brand | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Ajouter des stores | ❌ | ✅ | ✅ | ✅ | ❌ |
-| Créer des opportunités | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Voir les talents matchés | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Contacter des talents | ❌ | ❌ | ❌ | ✅ | ❌ |
-| Ajouter des team members | ❌ | ❌ | ✅ | ✅ | ❌ |
-| Accéder au dashboard | ✅ (limité) | ✅ (limité) | ✅ (limité) | ✅ | ❌ |
-
-### 4.4 Gestion des Sous-comptes (Team Members)
-
-Le statut du **compte principal brand** s'applique à **tous les team members** :
-
-```typescript
-// middleware.ts - Brand status check
-
-async function checkBrandAccess(brandId: string, requiredFeature: string) {
-  const brand = await getBrandWithStatus(brandId)
-  
-  const featureAccess: Record<string, BrandStatus[]> = {
-    'view_dashboard': ['onboarding', 'verified', 'pending_payment', 'active'],
-    'create_opportunity': ['active'],
-    'view_matches': ['active'],
-    'contact_talent': ['active'],
-    'add_team_member': ['pending_payment', 'active'],
-  }
-  
-  const allowedStatuses = featureAccess[requiredFeature] || ['active']
-  
-  if (!allowedStatuses.includes(brand.status)) {
-    throw new AccessDeniedError(`Brand status '${brand.status}' cannot access '${requiredFeature}'`)
-  }
-}
-```
-
-### 4.5 Options de Monétisation Brand
-
-| Modèle | Description | Avantages | Inconvénients |
-|--------|-------------|-----------|---------------|
-| **Abonnement mensuel** | Forfait fixe / mois | Revenus prévisibles | Barrière à l'entrée |
-| **Pay-per-hire** | Frais par recrutement réussi | Aligné sur valeur | Revenus variables |
-| **Crédits / Tokens** | Pool de crédits prépayés | Flexibilité | Complexité comptable |
-| **Freemium + Premium** | Fonctionnalités de base gratuites | Adoption facile | Conversion difficile |
-| **Hybride** | Abonnement + fee par hire | Meilleur des deux | Plus complexe |
-
-### 4.6 Interface Admin - Gestion Brands
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  ADMIN > BRANDS > Louis Vuitton                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  STATUS: [🟢 Active]  [🔴 Suspendre]  [📜 Voir contrat]            │
-│                                                                     │
-│  ───────────────────────────────────────────────────────────────── │
-│                                                                     │
-│  INFORMATIONS COMMERCIALES                                         │
-│  • Contrat signé le: 15/10/2024                                    │
-│  • Type: Abonnement annuel                                          │
-│  • Montant: 12 000€/an                                              │
-│  • Prochain paiement: 15/01/2025                                   │
-│  • Méthode: Virement SEPA                                          │
-│                                                                     │
-│  HISTORIQUE PAIEMENTS                                              │
-│  ┌────────────┬──────────┬────────────┬──────────┐                │
-│  │ Date       │ Montant  │ Statut     │ Réf.     │                │
-│  ├────────────┼──────────┼────────────┼──────────┤                │
-│  │ 15/10/2024 │ 3 000€   │ ✅ Payé    │ INV-001  │                │
-│  │ 15/01/2025 │ 3 000€   │ ⏳ En att. │ INV-002  │                │
-│  └────────────┴──────────┴────────────┴──────────┘                │
-│                                                                     │
-│  ÉQUIPE (3 membres)                                                │
-│  • Jean Martin (Owner) - jean@lv.com                               │
-│  • Sophie Durand (Recruiter) - sophie@lv.com                       │
-│  • Pierre Blanc (Viewer) - pierre@lv.com                           │
-│                                                                     │
-│  ACTIVITÉ                                                          │
-│  • Opportunités actives: 5                                         │
-│  • Talents contactés (30j): 23                                     │
-│  • Hires confirmés: 2                                              │
-│                                                                     │
-│  ACTIONS                                                           │
-│  [📧 Envoyer rappel paiement]  [📝 Modifier contrat]  [🗑 Résilier] │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 4.7 Tables DB Complémentaires
-
-```sql
--- Contrats brands
-CREATE TABLE brand_contracts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  brand_id UUID REFERENCES brands(id),
-  contract_type VARCHAR(50), -- 'annual', 'monthly', 'pay_per_hire'
-  start_date DATE NOT NULL,
-  end_date DATE,
-  amount_cents INTEGER,
-  currency VARCHAR(3) DEFAULT 'EUR',
-  billing_frequency VARCHAR(20), -- 'monthly', 'quarterly', 'annually'
-  payment_method VARCHAR(50), -- 'stripe', 'sepa', 'wire_transfer'
-  stripe_subscription_id VARCHAR(255),
-  signed_at TIMESTAMP WITH TIME ZONE,
-  signed_by UUID REFERENCES profiles(id),
-  document_url VARCHAR(500),
-  status VARCHAR(20) DEFAULT 'draft', -- draft, active, cancelled
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Factures
-CREATE TABLE brand_invoices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  brand_id UUID REFERENCES brands(id),
-  contract_id UUID REFERENCES brand_contracts(id),
-  invoice_number VARCHAR(50) UNIQUE,
-  amount_cents INTEGER NOT NULL,
-  currency VARCHAR(3) DEFAULT 'EUR',
-  due_date DATE,
-  paid_at TIMESTAMP WITH TIME ZONE,
-  status VARCHAR(20) DEFAULT 'pending', -- pending, paid, overdue, cancelled
-  stripe_invoice_id VARCHAR(255),
-  pdf_url VARCHAR(500),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Modification table brands pour inclure le statut commercial
-ALTER TABLE brands ADD COLUMN status VARCHAR(30) DEFAULT 'onboarding';
-ALTER TABLE brands ADD COLUMN verified_at TIMESTAMP WITH TIME ZONE;
-ALTER TABLE brands ADD COLUMN verified_by UUID REFERENCES profiles(id);
-ALTER TABLE brands ADD COLUMN current_contract_id UUID REFERENCES brand_contracts(id);
-```
+| Modèle | Avantages | Inconvénients |
+|--------|-----------|---------------|
+| Abonnement mensuel | Revenus prévisibles | Barrière à l'entrée |
+| Pay-per-hire | Aligné sur valeur | Revenus variables |
+| Crédits / Tokens | Flexibilité | Complexité |
+| Freemium + Premium | Adoption facile | Conversion difficile |
 
 ---
 
-## 6. Autres Idées {#6-autres}
+## 7. Talent Identity Verification {#7-identity}
 
-### 5.1 Fonctionnalités Futures (Non Priorisées)
+> **Statut** : ⏳ Différé
+> **Priorité** : Basse (post-launch Academy)
+> **Complexité** : Moyenne
 
-| Idée | Description | Complexité | Impact |
-|------|-------------|------------|--------|
-| **CV/LinkedIn Import** | Parser automatique pour pré-remplir profil | High | High |
-| **Video Intro** | Talents enregistrent une présentation vidéo de 60s | Medium | Medium |
-| **Référencement Externe** | Demander des références à d'anciens managers | Medium | High |
-| **Interview Scheduling** | Calendly-like intégré pour planifier entretiens | Medium | Medium |
-| **Brand Culture Quiz** | Assessment spécifique à chaque maison | High | Medium |
-| **Salary Calculator** | Outil public pour estimer sa valeur marché | Medium | High (acquisition) |
-| **Job Alerts** | Notifications push/email pour nouvelles offres | Low | Medium |
-| **Mobile App** | Apps natives iOS/Android | Very High | High |
-| **AI Matching Explain** | Expliquer pourquoi le match est fort/faible | Medium | Medium |
-| **Internal Mobility Hub** | Portail dédié aux mobilités internes | Medium | High (pour brands) |
+### 7.1 Objectif
 
-### 5.2 Intégrations Potentielles
+Vérifier l'identité des talents via email professionnel pour :
+- Confirmer l'employeur déclaré
+- Augmenter la confiance recruteurs
+- Prévenir les fraudes
 
-- **HRIS** : Workday, SAP SuccessFactors - Export candidats retenus
-- **ATS** : Greenhouse, Lever - Sync opportunités
-- **LinkedIn** : Import profil, vérification identité
-- **Background Check** : Vérification référence automatisée
-- **E-learning** : Partenariats pour modules de formation
+### 7.2 Flow Prévu
 
-### 5.3 Analytics & BI
+```
+Talent entre email pro (jean@louisvuitton.com)
+    ↓
+Validation domaine vs employeur déclaré
+    ↓
+Envoi email vérification
+    ↓
+Clic lien → professional_email_verified = true
+    ↓
+Si domaine match employeur → employer_verified = true
+```
 
-- Dashboard admin avec métriques business clés
-- Cohortes utilisateurs (acquisition, activation, rétention)
-- Funnel conversion (signup → complet → matched → hired)
+### 7.3 Impact sur Matching
+
+| Statut | Boost Score | Badge |
+|--------|-------------|-------|
+| Non vérifié | Base | - |
+| Email vérifié | +5% | ✅ Professional Email |
+| Employeur confirmé | +10% | 🏢 Verified at [Company] |
+
+---
+
+## 8. Simplification UX {#8-simplification}
+
+> **Statut** : ⏳ Backlog (continu)
+> **Priorité** : Continue
+
+### 8.1 Principes
+
+```
+Complexité fonctionnelle ≠ Complexité perçue
+```
+
+- Réduire le nombre d'écrans
+- Progressive disclosure
+- Smart defaults
+- One-click actions
+
+### 8.2 Questions Ouvertes
+
+- Mode "Express" (5 champs) vs "Complet" ?
+- Inférer des informations (segment de marque basé sur employeur) ?
+- Minimum viable pour un premier match ?
+
+### 8.3 Actions Potentielles
+
+- [ ] Audit UX avec analytics (Hotjar, Mixpanel)
+- [ ] A/B test onboarding simplifié
+- [ ] Consolidation Dashboard + Profile
+- [ ] Mobile-first redesign
+
+---
+
+## 9. Autres Idées {#9-autres}
+
+### 9.1 Fonctionnalités Non Priorisées
+
+| Idée | Complexité | Impact |
+|------|------------|--------|
+| CV/LinkedIn Import | High | High |
+| Video Intro 60s | Medium | Medium |
+| Références externes | Medium | High |
+| Interview Scheduling | Medium | Medium |
+| Salary Calculator | Medium | High (acquisition) |
+| Job Alerts | Low | Medium |
+| Mobile App | Very High | High |
+| AI Matching Explain | Medium | Medium |
+| Internal Mobility Hub | Medium | High |
+
+### 9.2 Intégrations Potentielles
+
+- **HRIS** : Workday, SAP SuccessFactors
+- **ATS** : Greenhouse, Lever
+- **LinkedIn** : Import profil
+- **Background Check** : Vérification automatisée
+- **E-learning** : Partenariats formation
+
+### 9.3 Analytics & BI
+
+- Dashboard admin métriques clés
+- Cohortes utilisateurs
+- Funnel conversion
 - Revenue tracking (MRR, churn, LTV)
 
 ---
@@ -817,8 +481,22 @@ ALTER TABLE brands ADD COLUMN current_contract_id UUID REFERENCES brand_contract
 | Date | Version | Modifications |
 |------|---------|---------------|
 | 2024-12-04 | 1.0 | Création initiale |
-| 2024-12-04 | 1.1 | Ajout Brand Assessments personnalisés, badges côté talent, invitation automatique |
+| 2024-12-04 | 1.1 | Ajout Brand Assessments personnalisés |
+| 2024-12-04 | 1.2 | Ajout TailorShift Academy (planification) |
+| 2024-12-04 | **2.0** | **Réorganisation complète** : séparation Implémenté/Backlog, mise à jour statuts Academy (Phase 2A/2B ✅), ajout références fichiers |
 
 ---
 
-> **Note** : Ce document est évolutif. Ajoutez vos idées dans la section appropriée avec une date et vos initiales.
+## Documents Liés
+
+| Document | Description |
+|----------|-------------|
+| [`PHASE2_ACADEMY_ARCHITECTURE.md`](./PHASE2_ACADEMY_ARCHITECTURE.md) | Architecture détaillée Academy |
+| [`BRAND_RBAC_ARCHITECTURE.md`](./BRAND_RBAC_ARCHITECTURE.md) | Système RBAC pour brands |
+| [`COMPENSATION_COLLECTION_ARCHITECTURE.md`](./COMPENSATION_COLLECTION_ARCHITECTURE.md) | Collecte rémunération (7 champs) |
+| [`TALENT_EXPERIENCE_ARCHITECTURE.md`](./TALENT_EXPERIENCE_ARCHITECTURE.md) | Architecture expérience talent |
+| [`ASSESSMENT_MATRIX_V7.md`](./ASSESSMENT_MATRIX_V7.md) | Matrice Assessment 6D |
+
+---
+
+> **Note** : Ce document est évolutif. Mise à jour après chaque sprint pour refléter l'état réel des implémentations.

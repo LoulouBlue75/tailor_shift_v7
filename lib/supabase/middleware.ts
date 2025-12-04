@@ -41,9 +41,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Define protected routes
-  const isProtectedRoute = 
+  const isProtectedRoute =
     request.nextUrl.pathname.startsWith('/talent') ||
     request.nextUrl.pathname.startsWith('/brand')
+  
+  // Define admin routes
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
   
   // Define auth routes
   const isAuthRoute =
@@ -62,6 +65,30 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Redirect unauthenticated users from admin routes
+  if (!user && isAdminRoute) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('redirect', request.nextUrl.pathname)
+    return NextResponse.redirect(url)
+  }
+
+  // Protect admin routes - only allow admin user_type
+  if (user && isAdminRoute) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_type')
+      .eq('id', user.id)
+      .single()
+    
+    if (profile?.user_type !== 'admin') {
+      // Non-admin trying to access admin routes - redirect to their dashboard
+      const url = request.nextUrl.clone()
+      url.pathname = profile?.user_type === 'brand' ? '/brand/dashboard' : '/talent/dashboard'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Redirect authenticated users from auth routes OR home page to dashboard
   if (user && (isAuthRoute || isHomePage)) {
     const url = request.nextUrl.clone()
@@ -74,7 +101,9 @@ export async function updateSession(request: NextRequest) {
       .single()
     
     // Redirect based on user_type and onboarding status
-    if (profile?.user_type === 'brand') {
+    if (profile?.user_type === 'admin') {
+      url.pathname = '/admin/dashboard'
+    } else if (profile?.user_type === 'brand') {
       url.pathname = profile.onboarding_completed ? '/brand/dashboard' : '/brand/onboarding'
     } else {
       url.pathname = profile?.onboarding_completed ? '/talent/dashboard' : '/talent/onboarding'

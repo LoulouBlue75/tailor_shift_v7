@@ -173,13 +173,15 @@ export default function BrandSignupPage() {
     setError(null)
     
     try {
-      // Create auth user
+      // Create auth user with user_type in metadata
+      // The database trigger on_auth_user_created will create the profile
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            user_type: 'brand',  // This tells the trigger to create a brand profile
           }
         }
       })
@@ -187,17 +189,14 @@ export default function BrandSignupPage() {
       if (authError) throw authError
       if (!authData.user) throw new Error('Failed to create user')
       
-      // Create or update profile
+      // Update the profile with additional fields (trigger already created it)
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          email,
-          full_name: fullName || null,
-          user_type: 'brand',
+        .update({
           department,
           onboarding_completed: false
         })
+        .eq('id', authData.user.id)
       
       if (profileError) throw profileError
       
@@ -223,13 +222,15 @@ export default function BrandSignupPage() {
     setError(null)
     
     try {
-      // Create auth user
+      // Create auth user with user_type in metadata
+      // The database trigger on_auth_user_created will create the profile
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            user_type: 'brand',  // This tells the trigger to create a brand profile
           }
         }
       })
@@ -241,18 +242,15 @@ export default function BrandSignupPage() {
       const deptConfig = DEPARTMENTS.find(d => d.id === department)
       const defaultRole = deptConfig?.defaultRole || 'viewer'
       
-      // Create profile with pending status
+      // Update profile with additional fields (trigger already created it)
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          email,
-          full_name: fullName || null,
-          user_type: 'brand',
+        .update({
           department,
           account_status: 'pending',
           onboarding_completed: true  // They don't need to set up brand
         })
+        .eq('id', authData.user.id)
       
       if (profileError) throw profileError
       

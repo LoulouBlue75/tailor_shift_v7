@@ -139,8 +139,8 @@ WHERE compensation_profile IS NOT NULL;
 -- STEP 4: Create view for compensation analytics
 -- ============================================================================
 
-CREATE OR REPLACE VIEW talent_compensation_summary AS
-SELECT 
+CREATE OR REPLACE VIEW talent_compensation_summary WITH (security_invoker = true) AS
+SELECT
   t.id AS talent_id,
   t.first_name,
   t.last_name,

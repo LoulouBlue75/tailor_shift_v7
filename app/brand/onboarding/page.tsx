@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Input, Logo, Card } from '@/components/ui'
-import { Check, Upload, Building2, Gem, Watch, Sparkles, ShoppingBag, Shirt } from 'lucide-react'
+import { Check, Upload, Building2, Gem, Watch, Sparkles, ShoppingBag, Shirt, AlertTriangle } from 'lucide-react'
+import { validateBrandEmail } from '@/lib/auth/domain-validation'
 
 const STEPS = [
   { id: 1, name: 'Brand Identity', description: 'Tell us about your maison' },
@@ -63,6 +64,11 @@ export default function BrandOnboardingPage() {
   const [data, setData] = useState<BrandOnboardingData>(initialData)
   const [loading, setLoading] = useState(false)
   const [brandId, setBrandId] = useState<string | null>(null)
+  const [emailValidation, setEmailValidation] = useState<{
+    isValid: boolean
+    message?: string
+    requiresReview: boolean
+  } | null>(null)
 
   useEffect(() => {
     const loadBrandData = async () => {
@@ -107,6 +113,16 @@ export default function BrandOnboardingPage() {
 
   const updateData = (updates: Partial<BrandOnboardingData>) => {
     setData(prev => ({ ...prev, ...updates }))
+
+    // Validate email when contact_email changes
+    if (updates.contact_email !== undefined) {
+      const validation = validateBrandEmail(updates.contact_email)
+      setEmailValidation({
+        isValid: validation.isValid,
+        message: validation.message,
+        requiresReview: validation.requiresManualReview
+      })
+    }
   }
 
   const toggleDivision = (divisionId: string) => {
@@ -136,6 +152,18 @@ export default function BrandOnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Determine brand status based on email validation
+      let brandStatus = 'onboarding' // default
+      if (emailValidation) {
+        if (emailValidation.isValid && !emailValidation.requiresReview) {
+          brandStatus = 'verified' // Luxury brand domain - auto verified
+        } else if (emailValidation.isValid && emailValidation.requiresReview) {
+          brandStatus = 'pending_verification' // Corporate domain - needs manual review
+        } else {
+          throw new Error(emailValidation.message || 'Email domain not accepted')
+        }
+      }
+
       const { error: brandError } = await supabase
         .from('brands')
         .update({
@@ -148,6 +176,8 @@ export default function BrandOnboardingPage() {
           contact_role: data.contact_role || null,
           contact_email: data.contact_email || null,
           contact_phone: data.contact_phone || null,
+          status: brandStatus,
+          verified_at: brandStatus === 'verified' ? new Date().toISOString() : null,
         })
         .eq('profile_id', user.id)
 
@@ -155,7 +185,7 @@ export default function BrandOnboardingPage() {
 
       await supabase
         .from('profiles')
-        .update({ 
+        .update({
           onboarding_completed: true,
           full_name: data.contact_name,
         })
@@ -164,6 +194,7 @@ export default function BrandOnboardingPage() {
       router.push('/brand/dashboard')
     } catch (error) {
       console.error('Error completing onboarding:', error)
+      // Could add error state here
     } finally {
       setLoading(false)
     }
@@ -176,7 +207,9 @@ export default function BrandOnboardingPage() {
       case 2:
         return data.divisions.length > 0
       case 3:
-        return data.contact_name.trim() !== '' && data.contact_email.trim() !== ''
+        const hasBasicInfo = data.contact_name.trim() !== '' && data.contact_email.trim() !== ''
+        const hasValidEmail = emailValidation?.isValid !== false // Allow if not checked yet or valid
+        return hasBasicInfo && hasValidEmail
       default:
         return false
     }
@@ -345,14 +378,45 @@ export default function BrandOnboardingPage() {
                 />
               </div>
 
-              <Input
-                label="Email"
-                type="email"
-                placeholder="jean.dupont@brand.com"
-                value={data.contact_email}
-                onChange={(e) => updateData({ contact_email: e.target.value })}
-                required
-              />
+              <div>
+                <Input
+                  label="Email"
+                  type="email"
+                  placeholder="jean.dupont@brand.com"
+                  value={data.contact_email}
+                  onChange={(e) => updateData({ contact_email: e.target.value })}
+                  required
+                />
+
+                {/* Email validation feedback */}
+                {data.contact_email && emailValidation && (
+                  <div className={`mt-2 p-3 rounded-[var(--radius-md)] text-sm flex items-start gap-2 ${
+                    emailValidation.isValid
+                      ? emailValidation.requiresReview
+                        ? 'bg-[var(--warning-light)] text-[var(--warning)]'
+                        : 'bg-[var(--success-light)] text-[var(--success)]'
+                      : 'bg-[var(--error-light)] text-[var(--error)]'
+                  }`}>
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium">
+                        {emailValidation.isValid
+                          ? emailValidation.requiresReview
+                            ? 'Validation manuelle requise'
+                            : 'Domaine validé automatiquement'
+                          : 'Domaine non accepté'
+                        }
+                      </p>
+                      <p className="text-xs mt-1">{emailValidation.message}</p>
+                      {emailValidation.requiresReview && (
+                        <p className="text-xs mt-1">
+                          Votre compte sera vérifié manuellement par notre équipe avant activation.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <Input
                 label="Phone"

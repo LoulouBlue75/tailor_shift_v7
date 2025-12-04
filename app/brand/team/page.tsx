@@ -1,146 +1,353 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button } from '@/components/ui'
-import { Users, Plus, Mail, Shield, MoreVertical, ArrowLeft, UserPlus } from 'lucide-react'
+'use client'
 
-const ROLES = {
-  owner: { name: 'Owner', color: 'var(--gold)', icon: Shield },
-  admin: { name: 'Admin', color: 'var(--charcoal)', icon: Shield },
-  recruiter: { name: 'Recruiter', color: 'var(--info)', icon: Users },
-  viewer: { name: 'Viewer', color: 'var(--grey-500)', icon: Users },
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { Button, Input, Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui'
+import { Plus, Mail, Trash2, Edit, Users, Shield, AlertTriangle } from 'lucide-react'
+import { checkBrandPermission, getBrandTeamMembers } from '@/lib/auth/brand-rbac'
+
+const ROLES = [
+  { id: 'owner', name: 'Owner', desc: 'Tous les droits', color: 'bg-purple-100 text-purple-800' },
+  { id: 'admin_global', name: 'Admin Global', desc: 'Administration complète', color: 'bg-red-100 text-red-800' },
+  { id: 'admin_brand', name: 'Admin Marque', desc: 'Gestion marque spécifique', color: 'bg-orange-100 text-orange-800' },
+  { id: 'hr_global', name: 'HR Global', desc: 'Recrutement global', color: 'bg-blue-100 text-blue-800' },
+  { id: 'hr_regional', name: 'HR Régional', desc: 'Recrutement régional', color: 'bg-cyan-100 text-cyan-800' },
+  { id: 'recruiter', name: 'Recruteur', desc: 'Opérations recrutement', color: 'bg-green-100 text-green-800' },
+  { id: 'manager_store', name: 'Manager Boutique', desc: 'Gestion boutique', color: 'bg-yellow-100 text-yellow-800' },
+  { id: 'viewer', name: 'Viewer', desc: 'Lecture seule', color: 'bg-gray-100 text-gray-800' },
+]
+
+interface TeamMember {
+  id: string
+  role: string
+  role_scope: any
+  invited_at: string
+  accepted_at: string | null
+  profiles: {
+    id: string
+    email: string
+    full_name: string | null
+  }[]
 }
 
-export default async function BrandTeamPage() {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+interface PendingInvitation {
+  id: string
+  email: string
+  role: string
+  created_at: string
+}
 
-  const { data: brand } = await supabase
-    .from('brands')
-    .select('*')
-    .eq('profile_id', user.id)
-    .single()
+export default function BrandTeamPage() {
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([])
+  const [showInvite, setShowInvite] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [canManageTeam, setCanManageTeam] = useState(false)
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    role: 'viewer',
+    message: ''
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
-  if (!brand) redirect('/brand/onboarding')
+  useEffect(() => {
+    loadTeamData()
+  }, [])
 
-  // Get team members
-  const { data: teamMembers } = await supabase
-    .from('brand_team_members')
-    .select(`
-      *,
-      profile:profiles(id, email, full_name, avatar_url)
-    `)
-    .eq('brand_id', brand.id)
-    .order('created_at', { ascending: true })
+  const loadTeamData = async () => {
+    try {
+      setLoading(true)
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
 
-  // Get pending invitations
-  const { data: invitations } = await supabase
-    .from('brand_invitations')
-    .select('*')
-    .eq('brand_id', brand.id)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
+      if (!user) {
+        setError('Utilisateur non authentifié')
+        return
+      }
 
-  // Current user is always owner if they created the brand
-  const currentUserMember = {
-    id: 'owner',
-    profile_id: user.id,
-    role: 'owner',
-    profile: {
-      email: user.email,
-      full_name: brand.contact_name || 'Brand Owner',
+      // Get brand ID
+      const { data: brand } = await supabase
+        .from('brands')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single()
+
+      if (!brand) {
+        setError('Marque non trouvée')
+        return
+      }
+
+      // Check permissions
+      const hasPermission = await checkBrandPermission(user.id, brand.id, 'manage_team')
+      setCanManageTeam(hasPermission)
+
+      // Load team members
+      const teamMembers = await getBrandTeamMembers(brand.id)
+      setMembers(teamMembers as TeamMember[])
+
+      // Load pending invitations
+      const { data: invitesData, error: invitesError } = await supabase
+        .from('brand_invitations')
+        .select('*')
+        .eq('brand_id', brand.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      if (!invitesError) {
+        setInvitations(invitesData || [])
+      }
+
+    } catch (err) {
+      console.error('Error loading team data:', err)
+      setError('Erreur lors du chargement des données équipe')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const allMembers = [currentUserMember, ...(teamMembers || [])]
+  const sendInvitation = async () => {
+    if (!inviteForm.email.trim()) {
+      setError('Email requis')
+      return
+    }
 
-  return (
-    <div className="min-h-screen bg-[var(--ivory)]">
-      {/* Header */}
-      <header className="bg-white border-b border-[var(--grey-200)] sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/brand/dashboard">
-                <ArrowLeft className="w-5 h-5 text-[var(--grey-600)] hover:text-[var(--charcoal)]" />
-              </Link>
-              <Logo size="md" />
-            </div>
-            
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/brand/dashboard" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)]">
-                Dashboard
-              </Link>
-              <Link href="/brand/pipeline" className="text-sm text-[var(--grey-600)] hover:text-[var(--charcoal)]">
-                Pipeline
-              </Link>
-              <Link href="/brand/team" className="text-sm font-medium text-[var(--charcoal)]">
-                Team
-              </Link>
-            </nav>
+    try {
+      setLoading(true)
+      setError(null)
 
-            <Link href="/brand/team/invite">
-              <Button size="sm">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Member
-              </Button>
-            </Link>
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      // Get brand ID
+      const { data: brand } = await supabase
+        .from('brands')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single()
+
+      if (!brand) return
+
+      // Create invitation
+      const { error: inviteError } = await supabase
+        .from('brand_invitations')
+        .insert({
+          brand_id: brand.id,
+          email: inviteForm.email.trim(),
+          role: inviteForm.role,
+          message: inviteForm.message.trim() || null
+        })
+
+      if (inviteError) {
+        throw inviteError
+      }
+
+      // Reset form and reload
+      setInviteForm({ email: '', role: 'viewer', message: '' })
+      setShowInvite(false)
+      setSuccess('Invitation envoyée avec succès')
+      await loadTeamData()
+
+    } catch (err: any) {
+      console.error('Error sending invitation:', err)
+      setError(err.message || 'Erreur lors de l\'envoi de l\'invitation')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const removeMember = async (memberId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) return
+
+    try {
+      const supabase = await createClient()
+      const { error } = await supabase
+        .from('brand_team_members')
+        .delete()
+        .eq('id', memberId)
+
+      if (error) throw error
+
+      setSuccess('Membre supprimé avec succès')
+      await loadTeamData()
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la suppression')
+    }
+  }
+
+  const cancelInvitation = async (invitationId: string) => {
+    try {
+      const supabase = await createClient()
+      const { error } = await supabase
+        .from('brand_invitations')
+        .delete()
+        .eq('id', invitationId)
+
+      if (error) throw error
+
+      setSuccess('Invitation annulée')
+      await loadTeamData()
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de l\'annulation')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-20 bg-gray-200 rounded"></div>
+            <div className="h-20 bg-gray-200 rounded"></div>
           </div>
         </div>
-      </header>
+      </div>
+    )
+  }
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-h1 mb-1">Team</h1>
-          <p className="text-[var(--grey-600)]">Manage your recruiting team members</p>
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Users className="w-8 h-8 text-[var(--gold)]" />
+          <div>
+            <h1 className="text-h2">Team Management</h1>
+            <p className="text-[var(--grey-600)]">Gérez les membres de votre équipe</p>
+          </div>
         </div>
+        {canManageTeam && (
+          <Button onClick={() => setShowInvite(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Inviter un membre
+          </Button>
+        )}
+      </div>
 
-        {/* Team Members */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Team Members ({allMembers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-[var(--grey-200)]">
-              {allMembers.map((member: any) => {
-                const roleConfig = ROLES[member.role as keyof typeof ROLES] || ROLES.viewer
-                const RoleIcon = roleConfig.icon
-                
+      {/* Messages */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-500" />
+          <span className="text-red-700">{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-red-500 hover:text-red-700"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+          <Shield className="w-5 h-5 text-green-500" />
+          <span className="text-green-700">{success}</span>
+          <button
+            onClick={() => setSuccess(null)}
+            className="ml-auto text-green-500 hover:text-green-700"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Active Members */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Membres actifs ({members.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {members.length === 0 ? (
+            <p className="text-[var(--grey-500)] text-center py-8">
+              Aucun membre dans l'équipe
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {members.map((member) => {
+                const roleInfo = ROLES.find(r => r.id === member.role)
                 return (
-                  <div key={member.id} className="py-4 flex items-center justify-between">
+                  <div key={member.id} className="flex items-center justify-between p-4 border border-[var(--grey-200)] rounded-lg">
                     <div className="flex items-center gap-4">
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-[var(--grey-200)] flex items-center justify-center text-[var(--grey-600)] font-medium">
-                        {member.profile?.full_name?.[0] || member.profile?.email?.[0]?.toUpperCase()}
+                      <div className="w-10 h-10 bg-[var(--gold-light)] rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-[var(--gold-dark)]">
+                          {(member.profiles[0]?.full_name || member.profiles[0]?.email || '?')[0].toUpperCase()}
+                        </span>
                       </div>
-                      
-                      {/* Info */}
                       <div>
-                        <p className="font-medium flex items-center gap-2">
-                          {member.profile?.full_name || 'Team Member'}
-                          {member.role === 'owner' && (
-                            <Badge variant="gold" size="sm">Owner</Badge>
-                          )}
+                        <p className="font-medium">
+                          {member.profiles[0]?.full_name || 'Utilisateur'}
                         </p>
-                        <p className="text-sm text-[var(--grey-600)]">{member.profile?.email}</p>
+                        <p className="text-sm text-[var(--grey-600)]">
+                          {member.profiles[0]?.email}
+                        </p>
+                        <Badge className={`mt-1 ${roleInfo?.color}`}>
+                          {roleInfo?.name}
+                        </Badge>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--grey-500)]">
+                        {member.accepted_at
+                          ? `Membre depuis ${new Date(member.accepted_at).toLocaleDateString()}`
+                          : 'Invitation en attente'
+                        }
+                      </span>
+                      {canManageTeam && member.role !== 'owner' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeMember(member.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
+      {/* Pending Invitations */}
+      {invitations.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Invitations en attente ({invitations.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {invitations.map((invite) => {
+                const roleInfo = ROLES.find(r => r.id === invite.role)
+                return (
+                  <div key={invite.id} className="flex items-center justify-between p-4 border border-[var(--grey-200)] rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--grey-100)]">
-                        <RoleIcon className="w-4 h-4" style={{ color: roleConfig.color }} />
-                        <span className="text-sm">{roleConfig.name}</span>
+                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Mail className="w-5 h-5 text-yellow-600" />
                       </div>
-                      
-                      {member.role !== 'owner' && (
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
+                      <div>
+                        <p className="font-medium">{invite.email}</p>
+                        <Badge className={`mt-1 ${roleInfo?.color}`}>
+                          {roleInfo?.name}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--grey-500)]">
+                        Invité le {new Date(invite.created_at).toLocaleDateString()}
+                      </span>
+                      {canManageTeam && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => cancelInvitation(invite.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Annuler
                         </Button>
                       )}
                     </div>
@@ -150,85 +357,65 @@ export default async function BrandTeamPage() {
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Pending Invitations */}
-        {invitations && invitations.length > 0 && (
-          <Card>
+      {/* Invite Modal */}
+      {showInvite && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
-                Pending Invitations ({invitations.length})
-              </CardTitle>
+              <CardTitle>Inviter un nouveau membre</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="divide-y divide-[var(--grey-200)]">
-                {invitations.map((invitation: any) => (
-                  <div key={invitation.id} className="py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[var(--grey-100)] flex items-center justify-center text-[var(--grey-400)]">
-                        <Mail className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{invitation.email}</p>
-                        <p className="text-sm text-[var(--grey-600)]">
-                          Invited {new Date(invitation.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <Badge variant="warning" size="sm">Pending</Badge>
-                      <Button variant="ghost" size="sm">Resend</Button>
-                      <Button variant="ghost" size="sm" className="text-[var(--error)]">Cancel</Button>
-                    </div>
-                  </div>
-                ))}
+            <CardContent className="space-y-4">
+              <Input
+                label="Adresse email"
+                type="email"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="colleague@brand.com"
+                required
+              />
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Rôle</label>
+                <select
+                  value={inviteForm.role}
+                  onChange={(e) => setInviteForm(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 border border-[var(--grey-200)] rounded-[var(--radius-md)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)]"
+                >
+                  {ROLES.map(role => (
+                    <option key={role.id} value={role.id}>
+                      {role.name} - {role.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Input
+                label="Message personnalisé (optionnel)"
+                value={inviteForm.message}
+                onChange={(e) => setInviteForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Bienvenue dans l'équipe recrutement !"
+              />
+
+              <div className="flex gap-3 pt-4">
+                <Button variant="ghost" onClick={() => setShowInvite(false)} className="flex-1">
+                  Annuler
+                </Button>
+                <Button
+                  onClick={sendInvitation}
+                  loading={loading}
+                  disabled={!inviteForm.email.trim()}
+                  className="flex-1"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Envoyer l'invitation
+                </Button>
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Empty Invitations State */}
-        {(!invitations || invitations.length === 0) && allMembers.length === 1 && (
-          <Card className="p-8 text-center">
-            <UserPlus className="w-12 h-12 mx-auto mb-4 text-[var(--grey-400)]" />
-            <h3 className="text-h3 mb-2">Grow your team</h3>
-            <p className="text-[var(--grey-600)] mb-4">
-              Invite colleagues to help manage recruitment
-            </p>
-            <Link href="/brand/team/invite">
-              <Button>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Invite Team Member
-              </Button>
-            </Link>
-          </Card>
-        )}
-
-        {/* Roles Info */}
-        <div className="mt-8">
-          <h3 className="text-sm font-medium text-[var(--grey-600)] mb-4">Role Permissions</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(ROLES).map(([key, role]) => {
-              const Icon = role.icon
-              return (
-                <div key={key} className="p-4 rounded-[var(--radius-md)] bg-white border border-[var(--grey-200)]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-4 h-4" style={{ color: role.color }} />
-                    <span className="font-medium text-sm">{role.name}</span>
-                  </div>
-                  <p className="text-small text-[var(--grey-600)]">
-                    {key === 'owner' && 'Full access, manage billing and team'}
-                    {key === 'admin' && 'Manage opportunities, team, and settings'}
-                    {key === 'recruiter' && 'Post opportunities and manage pipeline'}
-                    {key === 'viewer' && 'View-only access to pipeline and analytics'}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
         </div>
-      </main>
+      )}
     </div>
   )
 }

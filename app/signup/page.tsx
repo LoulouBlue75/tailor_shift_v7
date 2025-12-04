@@ -8,7 +8,7 @@ import { getSiteUrl } from '@/lib/utils/env'
 import { Button, Input, Logo, Card, Skeleton } from '@/components/ui'
 import { User, Building2, Check } from 'lucide-react'
 
-type UserType = 'talent' | 'brand' | null
+type UserType = 'talent' | null
 
 function SignupForm() {
   const router = useRouter()
@@ -17,7 +17,6 @@ function SignupForm() {
   
   const [userType, setUserType] = useState<UserType>(null)
   const [fullName, setFullName] = useState('')
-  const [brandName, setBrandName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -59,32 +58,22 @@ function SignupForm() {
       return
     }
 
-    // Create talent or brand record (profile is created by database trigger with user_type from metadata)
+    // Create talent record (profile is created by database trigger with user_type from metadata)
     if (data.user) {
-      // Create talent or brand record
-      if (userType === 'talent') {
-        const names = fullName.trim().split(' ')
-        const firstName = names[0] || ''
-        const lastName = names.slice(1).join(' ') || ''
-        
-        await supabase.from('talents').insert({
-          profile_id: data.user.id,
-          first_name: firstName,
-          last_name: lastName,
-          status: 'onboarding',
-        })
-      } else {
-        await supabase.from('brands').insert({
-          profile_id: data.user.id,
-          name: brandName, // Brand's name (company)
-          contact_name: fullName, // User's name as primary contact
-        })
-      }
+      const names = fullName.trim().split(' ')
+      const firstName = names[0] || ''
+      const lastName = names.slice(1).join(' ') || ''
+      
+      await supabase.from('talents').insert({
+        profile_id: data.user.id,
+        first_name: firstName,
+        last_name: lastName,
+        status: 'onboarding',
+      })
     }
 
-    // Redirect to onboarding
-    const onboardingPath = userType === 'brand' ? '/brand/onboarding' : '/talent/onboarding'
-    router.push(onboardingPath)
+    // Redirect to talent onboarding
+    router.push('/talent/onboarding')
     router.refresh()
   }
 
@@ -155,23 +144,18 @@ function SignupForm() {
               </Card>
 
               <Card
-                variant={userType === 'brand' ? 'selected' : 'interactive'}
+                variant="interactive"
                 className="p-6 text-center"
-                onClick={() => setUserType('brand')}
+                onClick={() => router.push('/signup/brand')}
               >
                 <div className="flex flex-col items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    userType === 'brand' ? 'bg-[var(--gold-light)]' : 'bg-[var(--grey-100)]'
-                  }`}>
-                    <Building2 className={`w-6 h-6 ${userType === 'brand' ? 'text-[var(--gold)]' : 'text-[var(--grey-600)]'}`} />
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[var(--grey-100)]">
+                    <Building2 className="w-6 h-6 text-[var(--grey-600)]" />
                   </div>
                   <div>
                     <h3 className="font-medium text-[var(--charcoal)]">Brand</h3>
-                    <p className="text-small text-[var(--grey-600)]">Looking for talent</p>
+                    <p className="text-small text-[var(--grey-600)]">Find exceptional talent</p>
                   </div>
-                  {userType === 'brand' && (
-                    <Check className="w-5 h-5 text-[var(--gold)]" />
-                  )}
                 </div>
               </Card>
             </div>
@@ -185,27 +169,14 @@ function SignupForm() {
         )}
 
         <form onSubmit={handleSignup} className="space-y-6 max-w-[400px] mx-auto">
-          {userType === 'brand' && (
-            <Input
-              type="text"
-              label="Brand Name"
-              placeholder="e.g., Chanel"
-              value={brandName}
-              onChange={(e) => setBrandName(e.target.value)}
-              required
-              autoComplete="organization"
-            />
-          )}
-          
           <Input
             type="text"
-            label={userType === 'brand' ? 'Your Name' : 'Full Name'}
+            label="Full Name"
             placeholder="John Doe"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
             autoComplete="name"
-            hint={userType === 'brand' ? 'Primary contact for this brand' : undefined}
           />
 
           <Input
@@ -233,7 +204,7 @@ function SignupForm() {
             type="submit"
             className="w-full"
             loading={loading}
-            disabled={!userType || (userType === 'brand' && !brandName.trim())}
+            disabled={!userType}
           >
             Create Account
           </Button>

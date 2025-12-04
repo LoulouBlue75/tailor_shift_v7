@@ -37,6 +37,9 @@ export interface Profile {
   preferred_language: string
   notification_preferences: Record<string, boolean>
   onboarding_completed: boolean
+  account_status?: AccountStatus
+  pending_team_request_id?: string | null
+  department?: Department | null
   created_at: string
   updated_at: string
 }

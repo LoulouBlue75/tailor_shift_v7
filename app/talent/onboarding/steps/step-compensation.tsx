@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { Input, Card } from '@/components/ui'
 import type { OnboardingData } from '../page'
-import { 
-  Check, DollarSign, Target, Lock, Unlock, Euro, PoundSterling, 
-  CircleDollarSign, Gift, Briefcase, MapPin, Building2, Info
+import {
+  Check, DollarSign, Target, Lock, Unlock, Euro, PoundSterling,
+  CircleDollarSign, Gift, Briefcase, MapPin, Building2, Info, ChevronDown
 } from 'lucide-react'
 
 interface StepCompensationProps {
@@ -17,12 +17,32 @@ interface StepCompensationProps {
 // CONSTANTS - Based on Luxury Retail Compensation Matrix
 // ============================================================================
 
+// Currencies ordered by frequency of use in luxury retail
 const CURRENCIES = [
-  { id: 'EUR', name: 'Euro', symbol: '€', icon: Euro },
-  { id: 'GBP', name: 'British Pound', symbol: '£', icon: PoundSterling },
-  { id: 'USD', name: 'US Dollar', symbol: '$', icon: CircleDollarSign },
-  { id: 'CHF', name: 'Swiss Franc', symbol: 'CHF', icon: CircleDollarSign },
-  { id: 'AED', name: 'UAE Dirham', symbol: 'د.إ', icon: CircleDollarSign },
+  // Most common (displayed in quick access)
+  { id: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺', region: 'Europe' },
+  { id: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸', region: 'Americas' },
+  { id: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧', region: 'UK' },
+  { id: 'CHF', name: 'Swiss Franc', symbol: 'CHF', flag: '🇨🇭', region: 'Switzerland' },
+  { id: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪', region: 'Middle East' },
+  // Asia Pacific
+  { id: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', flag: '🇭🇰', region: 'Asia' },
+  { id: 'SGD', name: 'Singapore Dollar', symbol: 'S$', flag: '🇸🇬', region: 'Asia' },
+  { id: 'JPY', name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵', region: 'Asia' },
+  { id: 'CNY', name: 'Chinese Yuan', symbol: '¥', flag: '🇨🇳', region: 'Asia' },
+  { id: 'AUD', name: 'Australian Dollar', symbol: 'A$', flag: '🇦🇺', region: 'Oceania' },
+  // Other Europe
+  { id: 'SEK', name: 'Swedish Krona', symbol: 'kr', flag: '🇸🇪', region: 'Europe' },
+  { id: 'DKK', name: 'Danish Krone', symbol: 'kr', flag: '🇩🇰', region: 'Europe' },
+  { id: 'NOK', name: 'Norwegian Krone', symbol: 'kr', flag: '🇳🇴', region: 'Europe' },
+  // Middle East
+  { id: 'SAR', name: 'Saudi Riyal', symbol: 'ر.س', flag: '🇸🇦', region: 'Middle East' },
+  { id: 'QAR', name: 'Qatari Riyal', symbol: 'ر.ق', flag: '🇶🇦', region: 'Middle East' },
+  { id: 'KWD', name: 'Kuwaiti Dinar', symbol: 'د.ك', flag: '🇰🇼', region: 'Middle East' },
+  // Americas
+  { id: 'CAD', name: 'Canadian Dollar', symbol: 'C$', flag: '🇨🇦', region: 'Americas' },
+  { id: 'MXN', name: 'Mexican Peso', symbol: '$', flag: '🇲🇽', region: 'Americas' },
+  { id: 'BRL', name: 'Brazilian Real', symbol: 'R$', flag: '🇧🇷', region: 'Americas' },
 ]
 
 const CONTRACT_TYPES = [
@@ -310,25 +330,67 @@ export function StepCompensation({ data, updateData }: StepCompensationProps) {
         </div>
 
         <div className="space-y-4 pl-8">
-          {/* Currency Selection - Inline */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--grey-600)]">Currency:</span>
-            {CURRENCIES.slice(0, 4).map((currency) => (
-              <button
-                key={currency.id}
-                type="button"
-                onClick={() => updateData({ currency: currency.id })}
-                className={`
-                  px-3 py-1 rounded-full text-xs font-medium transition-colors
-                  ${data.currency === currency.id 
-                    ? 'bg-[var(--charcoal)] text-white' 
-                    : 'bg-[var(--grey-100)] text-[var(--grey-600)] hover:bg-[var(--grey-200)]'
-                  }
-                `}
+          {/* Currency Selection - Dropdown with quick access */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--charcoal)] mb-2">Currency</label>
+            <div className="relative">
+              <select
+                value={data.currency}
+                onChange={(e) => updateData({ currency: e.target.value })}
+                className="
+                  w-full px-4 py-2.5 pr-10 rounded-[var(--radius-md)] border border-[var(--grey-200)]
+                  bg-white text-sm appearance-none cursor-pointer
+                  focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:border-transparent
+                "
               >
-                {currency.symbol}
-              </button>
-            ))}
+                {/* Group by region */}
+                <optgroup label="🌍 Most Used">
+                  {CURRENCIES.slice(0, 5).map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.flag} {c.symbol} - {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🌏 Asia Pacific">
+                  {CURRENCIES.filter(c => c.region === 'Asia' || c.region === 'Oceania').map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.flag} {c.symbol} - {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🇪🇺 Other Europe">
+                  {CURRENCIES.filter(c => c.region === 'Europe' && !['EUR'].includes(c.id)).map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.flag} {c.symbol} - {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🌴 Middle East">
+                  {CURRENCIES.filter(c => c.region === 'Middle East' && c.id !== 'AED').map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.flag} {c.symbol} - {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="🌎 Americas">
+                  {CURRENCIES.filter(c => c.region === 'Americas' && c.id !== 'USD').map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.flag} {c.symbol} - {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--grey-500)] pointer-events-none" />
+            </div>
+            {/* Show selected currency badge */}
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs text-[var(--grey-500)]">Selected:</span>
+              {data.currency && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--gold-light)] text-[var(--gold-dark)] rounded-full text-xs font-medium">
+                  {CURRENCIES.find(c => c.id === data.currency)?.flag} {data.currency}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Base + Variable in one row */}

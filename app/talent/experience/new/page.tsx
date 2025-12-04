@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Input, Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui'
-import { ArrowLeft, Plus, X, Check, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { ArrowLeft, Plus, X, Check, ChevronDown, ChevronUp, Info, DollarSign, Lock, Eye, EyeOff } from 'lucide-react'
 
 // ============================================================================
 // CONSTANTS
@@ -47,8 +47,22 @@ const STORE_TIERS = [
 ]
 
 const DIVISIONS = [
-  'fashion', 'leather_goods', 'shoes', 'watches', 
+  'fashion', 'leather_goods', 'shoes', 'watches',
   'high_jewelry', 'beauty', 'fragrance', 'eyewear', 'accessories'
+]
+
+// Currencies for salary input (ordered by frequency)
+const CURRENCIES = [
+  { id: 'EUR', name: 'Euro', symbol: '€', flag: '🇪🇺' },
+  { id: 'USD', name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
+  { id: 'GBP', name: 'British Pound', symbol: '£', flag: '🇬🇧' },
+  { id: 'CHF', name: 'Swiss Franc', symbol: 'CHF', flag: '🇨🇭' },
+  { id: 'AED', name: 'UAE Dirham', symbol: 'د.إ', flag: '🇦🇪' },
+  { id: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', flag: '🇭🇰' },
+  { id: 'SGD', name: 'Singapore Dollar', symbol: 'S$', flag: '🇸🇬' },
+  { id: 'JPY', name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵' },
+  { id: 'CNY', name: 'Chinese Yuan', symbol: '¥', flag: '🇨🇳' },
+  { id: 'AUD', name: 'Australian Dollar', symbol: 'A$', flag: '🇦🇺' },
 ]
 
 // ============================================================================
@@ -220,6 +234,12 @@ export default function NewExperiencePage() {
       reports_to: '',
       responsibilities: [],
     } as PositionScope,
+    // Compensation at this position (optional)
+    salary_base: null as number | null,
+    salary_variable_pct: null as number | null,
+    salary_currency: 'EUR',
+    salary_disclosed: false, // If true, salary can be used for progression insights
+    salary_private: true, // If true, never shared with brands
   })
 
   const [newAchievement, setNewAchievement] = useState('')
@@ -286,6 +306,20 @@ export default function NewExperiencePage() {
       const hasStoreContext = Object.values(formData.store_context).some(v => v)
       const hasPositionScope = formData.position_scope.management_span || formData.position_scope.foh_boh_split
 
+      // Build position_scope with optional compensation data
+      const positionScopeData = hasPositionScope || formData.salary_disclosed ? {
+        ...formData.position_scope,
+        // Include salary data if disclosed
+        ...(formData.salary_disclosed && formData.salary_base ? {
+          compensation: {
+            base: formData.salary_base,
+            variable_pct: formData.salary_variable_pct,
+            currency: formData.salary_currency,
+            private: formData.salary_private,
+          }
+        } : {})
+      } : null
+
       const { error: insertError } = await supabase
         .from('experience_blocks')
         .insert({
@@ -305,7 +339,7 @@ export default function NewExperiencePage() {
           responsibilities: formData.responsibilities,
           achievements: formData.achievements,
           store_context: hasStoreContext ? formData.store_context : null,
-          position_scope: hasPositionScope ? formData.position_scope : null,
+          position_scope: positionScopeData,
         })
 
       if (insertError) throw insertError
@@ -446,6 +480,154 @@ export default function NewExperiencePage() {
                 />
                 <span className="text-sm">I currently work here</span>
               </label>
+            </CardContent>
+          </Card>
+
+          {/* Compensation at this position (Optional) */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-[var(--gold)]" />
+                  <CardTitle>Compensation</CardTitle>
+                  <Badge variant="filled" size="sm">Optional</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-3 bg-[var(--grey-50)] rounded-[var(--radius-md)] text-sm text-[var(--grey-600)]">
+                <p className="flex items-start gap-2">
+                  <Info className="w-4 h-4 mt-0.5 shrink-0 text-[var(--info)]" />
+                  <span>
+                    <strong>Why add your salary?</strong> Track your progression over time and get better matching insights.
+                    You control exactly how this information is used.
+                  </span>
+                </p>
+              </div>
+
+              {/* Toggle to enable salary disclosure */}
+              <label className="flex items-center gap-3 p-3 border border-[var(--grey-200)] rounded-[var(--radius-md)] cursor-pointer hover:bg-[var(--grey-50)] transition-colors">
+                <input
+                  type="checkbox"
+                  checked={formData.salary_disclosed}
+                  onChange={(e) => updateForm({ salary_disclosed: e.target.checked })}
+                  className="w-4 h-4 rounded border-[var(--grey-300)] text-[var(--gold)] focus:ring-[var(--gold)]"
+                />
+                <div className="flex-1">
+                  <span className="text-sm font-medium block">I want to add my compensation at this position</span>
+                  <span className="text-xs text-[var(--grey-500)]">Enable to provide salary information for this role</span>
+                </div>
+              </label>
+
+              {formData.salary_disclosed && (
+                <div className="space-y-4 pt-2">
+                  {/* Currency + Base Salary */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Currency</label>
+                      <select
+                        value={formData.salary_currency}
+                        onChange={(e) => updateForm({ salary_currency: e.target.value })}
+                        className="
+                          w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--grey-200)]
+                          bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--gold)]
+                        "
+                      >
+                        {CURRENCIES.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.flag} {c.symbol}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium mb-1">Annual Base (Gross)</label>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="e.g., 45,000"
+                        value={formData.salary_base ? formData.salary_base.toLocaleString() : ''}
+                        onChange={(e) => {
+                          const cleaned = e.target.value.replace(/[^0-9]/g, '')
+                          updateForm({ salary_base: cleaned ? parseInt(cleaned) : null })
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Variable % */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Variable / Bonus (% of base)</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        placeholder="e.g., 20"
+                        value={formData.salary_variable_pct || ''}
+                        onChange={(e) => updateForm({ salary_variable_pct: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-32"
+                      />
+                      <span className="text-sm text-[var(--grey-500)]">% of base salary</span>
+                    </div>
+                  </div>
+
+                  {/* Privacy Control */}
+                  <div className="border-t border-[var(--grey-200)] pt-4 mt-4">
+                    <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-[var(--grey-500)]" />
+                      Privacy Controls
+                    </p>
+                    <label className="flex items-center gap-3 p-3 bg-[var(--grey-50)] rounded-[var(--radius-md)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.salary_private}
+                        onChange={(e) => updateForm({ salary_private: e.target.checked })}
+                        className="w-4 h-4 rounded border-[var(--grey-300)] text-[var(--gold)] focus:ring-[var(--gold)]"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium flex items-center gap-2">
+                          {formData.salary_private ? (
+                            <>
+                              <EyeOff className="w-4 h-4 text-[var(--success)]" />
+                              Keep private (progression insights only)
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-4 h-4 text-[var(--warning)]" />
+                              Allow for matching (visible to brands after mutual match)
+                            </>
+                          )}
+                        </span>
+                        <span className="text-xs text-[var(--grey-500)] block mt-0.5">
+                          {formData.salary_private
+                            ? "This salary will only be used to calculate your career progression insights - never shared with brands."
+                            : "This salary may be shared with brands you mutually match with to facilitate negotiations."
+                          }
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* Preview what will be tracked */}
+                  {(formData.salary_base || formData.salary_variable_pct) && (
+                    <div className="p-3 bg-[var(--gold-light)] rounded-[var(--radius-md)] text-sm">
+                      <p className="font-medium text-[var(--gold-dark)] mb-1">💡 This will be tracked:</p>
+                      <ul className="text-[var(--gold-dark)] text-xs space-y-1">
+                        {formData.salary_base && (
+                          <li>• Base salary: {CURRENCIES.find(c => c.id === formData.salary_currency)?.symbol}{formData.salary_base.toLocaleString()}/year</li>
+                        )}
+                        {formData.salary_variable_pct && (
+                          <li>• Variable: {formData.salary_variable_pct}% of base</li>
+                        )}
+                        {formData.salary_base && formData.salary_variable_pct && (
+                          <li>• Total package: ~{CURRENCIES.find(c => c.id === formData.salary_currency)?.symbol}{Math.round(formData.salary_base * (1 + formData.salary_variable_pct / 100)).toLocaleString()}/year</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

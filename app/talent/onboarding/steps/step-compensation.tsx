@@ -1,12 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Input, Card } from '@/components/ui'
 import type { OnboardingData } from '../page'
 import {
   Check, DollarSign, Target, Lock, Unlock, Euro, PoundSterling,
-  CircleDollarSign, Gift, Briefcase, MapPin, Building2, Info, ChevronDown
+  CircleDollarSign, Gift, Briefcase, MapPin, Building2, Info, ChevronDown,
+  Search, Globe
 } from 'lucide-react'
+import {
+  COUNTRIES,
+  REGIONS,
+  getPopularCountries,
+  getCountriesByRegion,
+  getCitiesForCountry,
+  getCountryById,
+  searchCountries,
+  type Country,
+  type City,
+} from '@/lib/data/locations'
 
 interface StepCompensationProps {
   data: OnboardingData
@@ -14,7 +26,7 @@ interface StepCompensationProps {
 }
 
 // ============================================================================
-// CONSTANTS - Based on Luxury Retail Compensation Matrix
+// CONSTANTS - Internationalized for Global Platform
 // ============================================================================
 
 // Currencies ordered by frequency of use in luxury retail
@@ -45,39 +57,50 @@ const CURRENCIES = [
   { id: 'BRL', name: 'Brazilian Real', symbol: 'R$', flag: '🇧🇷', region: 'Americas' },
 ]
 
+// ============================================================================
+// CONTRACT TYPES - Global terminology
+// ============================================================================
 const CONTRACT_TYPES = [
-  { id: 'cdi', name: 'CDI', desc: 'Permanent contract' },
-  { id: 'cdd', name: 'CDD', desc: 'Fixed-term contract' },
-  { id: 'interim', name: 'Intérim', desc: 'Temporary agency' },
-  { id: 'freelance', name: 'Freelance', desc: 'Independent contractor' },
+  { id: 'permanent', name: 'Permanent', desc: 'Open-ended employment' },
+  { id: 'fixed_term', name: 'Fixed-Term', desc: 'Contract with end date' },
+  { id: 'temporary', name: 'Temporary / Agency', desc: 'Via staffing agency' },
+  { id: 'freelance', name: 'Freelance / Contractor', desc: 'Self-employed' },
 ]
 
+// ============================================================================
+// BRAND SEGMENTS - With ellipsis indicating more examples
+// ============================================================================
 const BRAND_SEGMENTS = [
-  { id: 'ultra_luxury', name: 'Ultra Luxury', examples: 'Hermès, Chanel', variableRatio: '10-20%' },
-  { id: 'luxury', name: 'Luxury', examples: 'LV, Dior, Gucci', variableRatio: '20-35%' },
-  { id: 'premium', name: 'Premium', examples: 'Ralph Lauren, Coach', variableRatio: '30-45%' },
-  { id: 'accessible_luxury', name: 'Accessible Luxury', examples: 'ba&sh, Maje', variableRatio: '35-50%' },
+  { id: 'ultra_luxury', name: 'Ultra Luxury', examples: 'Hermès, Chanel, Brunello Cucinelli...', variableRatio: '10-20%' },
+  { id: 'luxury', name: 'Luxury', examples: 'Louis Vuitton, Dior, Gucci, Prada...', variableRatio: '20-35%' },
+  { id: 'premium', name: 'Premium', examples: 'Ralph Lauren, Coach, Michael Kors...', variableRatio: '30-45%' },
+  { id: 'accessible_luxury', name: 'Accessible Luxury', examples: 'ba&sh, Maje, Sandro, Zadig & Voltaire...', variableRatio: '35-50%' },
 ]
 
-const REGIONS = [
-  { id: 'france_paris', name: 'France - Paris', premium: '+15-25%' },
-  { id: 'france_province', name: 'France - Province', premium: 'Baseline' },
-  { id: 'suisse', name: 'Suisse', premium: '+20-30%' },
-  { id: 'uae_dubai', name: 'UAE / Dubaï', premium: '+40-60% (tax-free)' },
-  { id: 'emea_other', name: 'Reste EMEA', premium: 'Variable' },
-  { id: 'asia', name: 'Asie', premium: '+30-50%' },
-  { id: 'americas', name: 'Amériques', premium: 'Variable' },
-]
-
+// ============================================================================
+// BENEFITS - Global categories (replacing French-specific terms)
+// ============================================================================
 const BENEFITS = [
-  { id: 'staff_discount', name: 'Staff Discount', desc: '20-50% off', icon: '🏷️' },
-  { id: 'uniform', name: 'Uniform / Allowance', desc: '€300-800/year', icon: '👔' },
-  { id: 'tickets_restaurant', name: 'Tickets Restaurant', desc: '€5-9/day', icon: '🍽️' },
-  { id: 'mutuelle', name: 'Mutuelle', desc: 'Health insurance', icon: '🏥' },
-  { id: 'phone_transport', name: 'Phone / Transport', desc: '€50-150/month', icon: '📱' },
-  { id: 'private_sales', name: 'Private Sales Access', desc: 'Early access + discounts', icon: '✨' },
-  { id: 'thirteenth_month', name: '13th Month', desc: 'Annual bonus', icon: '💰' },
-  { id: 'participation', name: 'Participation / Intéressement', desc: '1-6 months salary', icon: '📈' },
+  // Universal - Luxury Retail Specific
+  { id: 'staff_discount', name: 'Staff Discount', desc: '20-50% off products', icon: '🏷️', category: 'retail' },
+  { id: 'clothing_allowance', name: 'Clothing Allowance', desc: 'Uniform or budget', icon: '👔', category: 'retail' },
+  { id: 'private_sales', name: 'Private Sales Access', desc: 'Early access + exclusive prices', icon: '✨', category: 'retail' },
+  
+  // Compensation Related
+  { id: 'annual_bonus', name: 'Annual Bonus', desc: '13th month or equivalent', icon: '💰', category: 'compensation' },
+  { id: 'profit_sharing', name: 'Profit Sharing', desc: 'Performance-based bonus pool', icon: '📈', category: 'compensation' },
+  
+  // Health & Welfare
+  { id: 'health_insurance', name: 'Health Insurance', desc: 'Medical coverage', icon: '🏥', category: 'welfare' },
+  { id: 'wellness_benefits', name: 'Wellness Benefits', desc: 'Gym, mental health, etc.', icon: '🧘', category: 'welfare' },
+  
+  // Practical
+  { id: 'meal_benefits', name: 'Meal Benefits', desc: 'Lunch allowance or vouchers', icon: '🍽️', category: 'practical' },
+  { id: 'commute_support', name: 'Commute Support', desc: 'Transport or phone allowance', icon: '🚇', category: 'practical' },
+  { id: 'retirement_plan', name: 'Retirement Plan', desc: 'Pension contributions', icon: '🏦', category: 'practical' },
+  
+  // Special (for senior/relocation)
+  { id: 'relocation_support', name: 'Relocation Support', desc: 'Moving assistance', icon: '✈️', category: 'special' },
 ]
 
 const FLEXIBILITY_OPTIONS = [
@@ -97,7 +120,7 @@ const FLEXIBILITY_OPTIONS = [
   },
 ]
 
-// Salary benchmarks by role and segment (in EUR for France)
+// Salary benchmarks by role level and segment (in EUR for France)
 const SALARY_BENCHMARKS: Record<string, Record<string, { min: number; max: number; avg: number }>> = {
   L1: { // Sales Associate
     ultra_luxury: { min: 28000, max: 35000, avg: 32000 },
@@ -163,6 +186,26 @@ const VARIABLE_RATIOS: Record<string, { min: number; max: number }> = {
 
 export function StepCompensation({ data, updateData }: StepCompensationProps) {
   const [showBenchmark, setShowBenchmark] = useState(false)
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false)
+  const [countrySearch, setCountrySearch] = useState('')
+  
+  // Get data for location selectors
+  const popularCountries = useMemo(() => getPopularCountries(), [])
+  const countriesByRegion = useMemo(() => getCountriesByRegion(), [])
+  const selectedCountry = useMemo(() => 
+    data.compensation_country ? getCountryById(data.compensation_country) : null,
+    [data.compensation_country]
+  )
+  const availableCities = useMemo(() => 
+    data.compensation_country ? getCitiesForCountry(data.compensation_country) : [],
+    [data.compensation_country]
+  )
+  
+  // Filter countries based on search
+  const filteredCountries = useMemo(() => {
+    if (!countrySearch) return null
+    return searchCountries(countrySearch)
+  }, [countrySearch])
   
   // Format number with thousands separator for display
   const formatNumber = (value: number | null | undefined): string => {
@@ -196,6 +239,21 @@ export function StepCompensation({ data, updateData }: StepCompensationProps) {
     updateData({ current_benefits: updated })
   }
 
+  // Handle country selection
+  const handleCountrySelect = (countryId: string) => {
+    updateData({ 
+      compensation_country: countryId,
+      compensation_city: null // Reset city when country changes
+    })
+    setCountryDropdownOpen(false)
+    setCountrySearch('')
+  }
+
+  // Handle city selection
+  const handleCitySelect = (cityId: string) => {
+    updateData({ compensation_city: cityId })
+  }
+
   return (
     <div className="space-y-6">
       {/* Section 1: Contract & Segment (Required Context) */}
@@ -220,7 +278,12 @@ export function StepCompensation({ data, updateData }: StepCompensationProps) {
                   }
                 `}
               >
-                <span>{contract.name}</span>
+                <div>
+                  <span className="font-medium">{contract.name}</span>
+                  <span className={`block text-xs ${data.contract_type === contract.id ? 'text-white/70' : 'text-[var(--grey-500)]'}`}>
+                    {contract.desc}
+                  </span>
+                </div>
                 {data.contract_type === contract.id && <Check className="w-4 h-4" />}
               </button>
             ))}
@@ -259,29 +322,172 @@ export function StepCompensation({ data, updateData }: StepCompensationProps) {
         </div>
       </div>
 
-      {/* Section 2: Region */}
+      {/* Section 2: Location (Country → City) */}
       <div>
         <label className="block text-sm font-medium text-[var(--charcoal)] mb-2">
-          Region <span className="text-[var(--error)]">*</span>
+          <Globe className="inline w-4 h-4 mr-1" />
+          Where are you based? <span className="text-[var(--error)]">*</span>
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {REGIONS.map((region) => (
-            <button
-              key={region.id}
-              type="button"
-              onClick={() => updateData({ compensation_region: region.id })}
-              className={`
-                px-3 py-2 rounded-[var(--radius-md)] text-sm transition-colors text-center
-                ${data.compensation_region === region.id
-                  ? 'bg-[var(--charcoal)] text-white'
-                  : 'bg-[var(--grey-100)] text-[var(--grey-700)] hover:bg-[var(--grey-200)]'
-                }
-              `}
-            >
-              {region.name}
-            </button>
-          ))}
+        
+        {/* Country Selector */}
+        <div className="relative mb-3">
+          <button
+            type="button"
+            onClick={() => setCountryDropdownOpen(!countryDropdownOpen)}
+            className={`
+              w-full px-4 py-3 rounded-[var(--radius-md)] text-left transition-colors
+              flex items-center justify-between border
+              ${selectedCountry
+                ? 'bg-white border-[var(--gold)]'
+                : 'bg-[var(--grey-50)] border-[var(--grey-200)] hover:border-[var(--grey-300)]'
+              }
+            `}
+          >
+            {selectedCountry ? (
+              <span className="flex items-center gap-2">
+                <span className="text-lg">{selectedCountry.emoji}</span>
+                <span className="font-medium">{selectedCountry.name}</span>
+              </span>
+            ) : (
+              <span className="text-[var(--grey-500)]">Select your country...</span>
+            )}
+            <ChevronDown className={`w-4 h-4 text-[var(--grey-500)] transition-transform ${countryDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {/* Country Dropdown */}
+          {countryDropdownOpen && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-[var(--grey-200)] rounded-[var(--radius-md)] shadow-lg max-h-80 overflow-y-auto">
+              {/* Search */}
+              <div className="sticky top-0 bg-white p-2 border-b border-[var(--grey-100)]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--grey-400)]" />
+                  <input
+                    type="text"
+                    placeholder="Search countries..."
+                    value={countrySearch}
+                    onChange={(e) => setCountrySearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-[var(--grey-200)] rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)]"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              
+              {/* Search Results or Grouped List */}
+              <div className="py-1">
+                {filteredCountries ? (
+                  // Search results
+                  filteredCountries.length > 0 ? (
+                    filteredCountries.map(country => (
+                      <button
+                        key={country.id}
+                        type="button"
+                        onClick={() => handleCountrySelect(country.id)}
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--grey-50)] flex items-center gap-2"
+                      >
+                        <span>{country.emoji}</span>
+                        <span>{country.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-4 text-sm text-[var(--grey-500)] text-center">
+                      No countries found
+                    </div>
+                  )
+                ) : (
+                  // Grouped list
+                  <>
+                    {/* Popular */}
+                    <div className="px-3 py-1.5 text-xs font-semibold text-[var(--grey-500)] bg-[var(--grey-50)]">
+                      📍 Popular in Luxury Retail
+                    </div>
+                    {popularCountries.map(country => (
+                      <button
+                        key={country.id}
+                        type="button"
+                        onClick={() => handleCountrySelect(country.id)}
+                        className={`
+                          w-full px-3 py-2 text-left text-sm flex items-center gap-2
+                          ${data.compensation_country === country.id
+                            ? 'bg-[var(--gold-light)] text-[var(--gold-dark)]'
+                            : 'hover:bg-[var(--grey-50)]'
+                          }
+                        `}
+                      >
+                        <span>{country.emoji}</span>
+                        <span>{country.name}</span>
+                        {data.compensation_country === country.id && <Check className="w-3 h-3 ml-auto" />}
+                      </button>
+                    ))}
+                    
+                    {/* By Region */}
+                    {REGIONS.map(region => (
+                      <div key={region.id}>
+                        <div className="px-3 py-1.5 text-xs font-semibold text-[var(--grey-500)] bg-[var(--grey-50)]">
+                          {region.emoji} {region.name}
+                        </div>
+                        {countriesByRegion[region.id]
+                          .filter(c => !popularCountries.find(p => p.id === c.id)) // Avoid duplicates with popular
+                          .map(country => (
+                            <button
+                              key={country.id}
+                              type="button"
+                              onClick={() => handleCountrySelect(country.id)}
+                              className={`
+                                w-full px-3 py-2 text-left text-sm flex items-center gap-2
+                                ${data.compensation_country === country.id
+                                  ? 'bg-[var(--gold-light)] text-[var(--gold-dark)]'
+                                  : 'hover:bg-[var(--grey-50)]'
+                                }
+                              `}
+                            >
+                              <span>{country.emoji}</span>
+                              <span>{country.name}</span>
+                              {data.compensation_country === country.id && <Check className="w-3 h-3 ml-auto" />}
+                            </button>
+                          ))}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+        
+        {/* City Selection (appears after country selected) */}
+        {selectedCountry && availableCities.length > 0 && (
+          <div>
+            <label className="block text-xs text-[var(--grey-600)] mb-2">
+              City <span className="text-[var(--grey-400)]">(optional - refines salary benchmark)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {availableCities.map(city => (
+                <button
+                  key={city.id}
+                  type="button"
+                  onClick={() => handleCitySelect(city.id)}
+                  className={`
+                    px-3 py-2 rounded-[var(--radius-md)] text-sm transition-colors
+                    ${data.compensation_city === city.id
+                      ? 'bg-[var(--gold)] text-white'
+                      : 'bg-[var(--grey-100)] text-[var(--grey-700)] hover:bg-[var(--grey-200)]'
+                    }
+                  `}
+                >
+                  <span className="font-medium">{city.name}</span>
+                  {city.premium !== 'Baseline' && city.premium !== 'Variable' && (
+                    <span className={`block text-xs ${data.compensation_city === city.id ? 'text-white/80' : 'text-[var(--success)]'}`}>
+                      {city.premium}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-[var(--grey-500)] mt-2">
+              💡 Major cities often have +15-60% salary premium
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Benchmark Display */}

@@ -52,14 +52,16 @@ export interface OnboardingData {
   mobility: string
   timeline: string
   // Step 5: Compensation (Enhanced - 7 key fields for luxury retail)
-  contract_type: string  // CDI, CDD, Intérim, Freelance
+  contract_type: string  // permanent, fixed_term, temporary, freelance (internationalized)
   brand_segment: string  // ultra_luxury, luxury, premium, accessible_luxury
-  compensation_region: string  // france_paris, france_province, suisse, uae_dubai, etc.
+  compensation_country: string  // Country ID (e.g., 'france', 'uae', 'uk')
+  compensation_city: string | null  // City ID (e.g., 'paris', 'dubai') - optional
+  compensation_region: string  // Legacy field for backwards compatibility
   current_base: number | null  // Annual base salary (gross)
   variable_percentage: number | null  // Variable as % of base (15-60% typical)
   has_commission: boolean  // Individual sales commission Y/N
   commission_rate: number | null  // Commission rate (1-10%)
-  current_benefits: string[]  // Multi-select benefits
+  current_benefits: string[]  // Multi-select benefits (internationalized)
   currency: string
   expectations: number | null
   salary_flexibility: 'flexible' | 'firm'
@@ -88,10 +90,12 @@ const initialData: OnboardingData = {
   target_locations: [],
   mobility: 'national',
   timeline: 'passive',
-  // Compensation defaults (enhanced 7 fields)
-  contract_type: 'cdi',
+  // Compensation defaults (enhanced - internationalized)
+  contract_type: 'permanent',  // Changed from 'cdi' to global term
   brand_segment: '',
-  compensation_region: '',
+  compensation_country: '',  // New: country ID
+  compensation_city: null,   // New: city ID (optional)
+  compensation_region: '',   // Legacy field
   current_base: null,
   variable_percentage: null,
   has_commission: false,
@@ -146,11 +150,13 @@ export default function TalentOnboardingPage() {
 
       if (talent) {
         setTalentId(talent.id)
-        // Extract compensation profile with proper typing (enhanced 7 fields)
+        // Extract compensation profile with proper typing (internationalized)
         const compensationProfile = talent.compensation_profile as {
           contract_type?: string
           brand_segment?: string
-          compensation_region?: string
+          compensation_country?: string
+          compensation_city?: string | null
+          compensation_region?: string  // Legacy
           current_base?: number | null
           variable_percentage?: number | null
           has_commission?: boolean
@@ -179,10 +185,12 @@ export default function TalentOnboardingPage() {
           target_brands: talent.career_preferences?.target_brands || [],
           mobility: talent.career_preferences?.mobility || 'national',
           timeline: talent.career_preferences?.timeline || 'passive',
-          // Load enhanced compensation data
-          contract_type: compensationProfile?.contract_type || 'cdi',
+          // Load enhanced compensation data (internationalized)
+          contract_type: compensationProfile?.contract_type || 'permanent',
           brand_segment: compensationProfile?.brand_segment || '',
-          compensation_region: compensationProfile?.compensation_region || '',
+          compensation_country: compensationProfile?.compensation_country || '',
+          compensation_city: compensationProfile?.compensation_city || null,
+          compensation_region: compensationProfile?.compensation_region || '',  // Legacy
           current_base: compensationProfile?.current_base ?? null,
           variable_percentage: compensationProfile?.variable_percentage ?? null,
           has_commission: compensationProfile?.has_commission || false,
@@ -300,12 +308,14 @@ export default function TalentOnboardingPage() {
         updateData.internal_mobility_interest = data.current_employer
           ? data.target_brands.some(b => b.toLowerCase() === data.current_employer.toLowerCase())
           : false
-        // Save enhanced compensation profile as JSONB (7 key fields for luxury retail matching)
+        // Save enhanced compensation profile as JSONB (internationalized for global platform)
         updateData.compensation_profile = {
-          // Core 7 fields
+          // Core fields (internationalized)
           contract_type: data.contract_type,
           brand_segment: data.brand_segment,
-          compensation_region: data.compensation_region,
+          compensation_country: data.compensation_country,
+          compensation_city: data.compensation_city,
+          compensation_region: data.compensation_region,  // Legacy field for backwards compatibility
           current_base: data.current_base,
           variable_percentage: data.variable_percentage,
           has_commission: data.has_commission,
@@ -443,12 +453,13 @@ export default function TalentOnboardingPage() {
         case 4:
           return data.timeline !== ''
         case 5:
-          // Compensation step requires the 7 key fields (except commission which is optional)
-          // Required: contract_type, brand_segment, compensation_region, current_base, variable_percentage
+          // Compensation step requires the key fields (internationalized)
+          // Required: contract_type, brand_segment, compensation_country, current_base
+          // City is optional (refines salary benchmark)
           return (
             data.contract_type !== '' &&
             data.brand_segment !== '' &&
-            data.compensation_region !== '' &&
+            data.compensation_country !== '' &&
             data.current_base !== null &&
             data.current_base > 0
           )

@@ -17,6 +17,7 @@ function SignupForm() {
   
   const [userType, setUserType] = useState<UserType>(null)
   const [fullName, setFullName] = useState('')
+  const [brandName, setBrandName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -75,7 +76,8 @@ function SignupForm() {
       } else {
         await supabase.from('brands').insert({
           profile_id: data.user.id,
-          name: fullName, // Will be updated in onboarding
+          name: brandName, // Brand's name (company)
+          contact_name: fullName, // User's name as primary contact
         })
       }
     }
@@ -183,14 +185,27 @@ function SignupForm() {
         )}
 
         <form onSubmit={handleSignup} className="space-y-6 max-w-[400px] mx-auto">
+          {userType === 'brand' && (
+            <Input
+              type="text"
+              label="Brand Name"
+              placeholder="e.g., Louis Vuitton"
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              required
+              autoComplete="organization"
+            />
+          )}
+          
           <Input
             type="text"
-            label="Full Name"
+            label={userType === 'brand' ? 'Your Name' : 'Full Name'}
             placeholder="John Doe"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
             autoComplete="name"
+            hint={userType === 'brand' ? 'Primary contact for this brand' : undefined}
           />
 
           <Input
@@ -218,7 +233,7 @@ function SignupForm() {
             type="submit"
             className="w-full"
             loading={loading}
-            disabled={!userType}
+            disabled={!userType || (userType === 'brand' && !brandName.trim())}
           >
             Create Account
           </Button>

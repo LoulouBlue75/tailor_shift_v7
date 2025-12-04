@@ -72,23 +72,32 @@ export default function BrandOnboardingPage() {
         return
       }
 
-      const { data: brand } = await supabase
-        .from('brands')
-        .select('*')
-        .eq('profile_id', user.id)
-        .single()
+      // Fetch both brand data and profile data
+      const [{ data: brand }, { data: profile }] = await Promise.all([
+        supabase
+          .from('brands')
+          .select('*')
+          .eq('profile_id', user.id)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single()
+      ])
 
       if (brand) {
         setBrandId(brand.id)
+        // Use profile data as fallback for contact info if not set in brand
         setData({
           name: brand.name || '',
           website: brand.website || '',
           segment: brand.segment || '',
           headquarters_location: brand.headquarters_location || '',
           divisions: brand.divisions || [],
-          contact_name: brand.contact_name || '',
+          contact_name: brand.contact_name || profile?.full_name || user.user_metadata?.full_name || '',
           contact_role: brand.contact_role || '',
-          contact_email: brand.contact_email || '',
+          contact_email: brand.contact_email || profile?.email || user.email || '',
           contact_phone: brand.contact_phone || '',
         })
       }

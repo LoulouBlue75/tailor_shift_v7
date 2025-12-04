@@ -120,9 +120,12 @@ export default function CompleteSignupPage() {
           throw new Error('Failed to create talent record: ' + talentError.message)
         }
       } else {
+        // For brand OAuth signups, user's name becomes contact_name
+        // Brand name will be filled in during onboarding
         const { error: brandError } = await supabase.from('brands').insert({
           profile_id: userId,
-          name: fullName, // Will be updated in onboarding
+          name: '', // To be filled in onboarding Step 1
+          contact_name: fullName, // User's name as primary contact
         })
 
         if (brandError) {

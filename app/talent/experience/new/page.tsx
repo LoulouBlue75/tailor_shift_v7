@@ -198,7 +198,6 @@ export default function NewExperiencePage() {
     store_tier: '',
     division: '',
     team_size: null as number | null,
-    description: '',
     achievements: [] as string[],
     responsibilities: [] as string[],
     // Store Context (extended)

@@ -89,8 +89,9 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users from auth routes OR home page to dashboard
-  if (user && (isAuthRoute || isHomePage)) {
+  // Redirect authenticated users from auth routes to dashboard
+  // Note: We allow authenticated users to visit the home page (isHomePage)
+  if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
     
     // Fetch user's profile to determine the correct dashboard

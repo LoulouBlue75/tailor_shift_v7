@@ -1,104 +1,45 @@
-# Compensation Collection Architecture - Simplified Plan
+# Structure de Rémunération Retail Luxe : Architecture de Collecte
 
-## Executive Summary
+## Vue d'ensemble
 
-This document outlines the implementation plan for activating the **existing compensation data model** in TailorShift. The structures already exist in the database and TypeScript types - we just need to:
+Cette documentation décrit la matrice de collecte de données de rémunération pour la plateforme TailorShift, optimisée pour le matching entre talents et marques de luxe.
 
-1. **Collect the data** in talent onboarding  
-2. **Display alignment** in matching views
-3. **Calculate alignment** in the algorithm
+## Objectifs de Conception
 
-**Target: 3 implementation phases over 2-3 days**
+| Critère | Cible |
+|---------|-------|
+| Temps de complétion | < 90 secondes |
+| Taux de complétion | > 70% |
+| Champs principaux | 7 champs couvrant 80% des variations |
+| UX | Simple, progressif, benchmarks contextuels |
 
----
+## Les 7 Champs Principaux
 
-## 1. Current State Analysis
+| # | Champ | Format | Obligatoire | Notes |
+|---|-------|--------|-------------|-------|
+| 1 | **Fixe annuel brut** | Montant € | ✓ Oui | Temps plein équivalent |
+| 2 | **Variable total (% du fixe)** | Pourcentage | ✓ Oui | 15-60% selon niveau/segment |
+| 3 | **Commission individuelle** | Oui/Non + % | Non | 60-70% des maisons |
+| 4 | **Avantages en nature** | Multi-sélection | ✓ Oui | 8 catégories principales |
+| 5 | **Type de contrat** | Liste | ✓ Oui | CDI, CDD, Intérim, Freelance |
+| 6 | **Segment de marque** | Liste | ✓ Oui | Ultra Luxury → Accessible Luxury |
+| 7 | **Région** | Liste | ✓ Oui | 7 zones géographiques |
 
-### 1.1 Existing Data Models (Already Defined!)
+## Implémentation Technique
 
-**Talent Side** ([`lib/types/database.ts:53-58`](lib/types/database.ts:53))
-```typescript
-export interface CompensationProfile {
-  current_base: number | null       // Annual gross base salary
-  current_variable: number | null   // Annual variable/bonus amount
-  currency: string                  // EUR, USD, GBP, etc.
-  expectations: number | null       // Target total package
-}
-```
-
-**Opportunity Side** ([`lib/types/database.ts:278-283`](lib/types/database.ts:278))
-```typescript
-export interface CompensationRange {
-  min_base: number | null          // Minimum package
-  max_base: number | null          // Maximum package  
-  variable_pct: number | null      // Variable % offered
-  currency: string                 // Currency
-}
-```
-
-**Match Side** ([`lib/types/database.ts:337`](lib/types/database.ts:337))
-```typescript
-compensation_alignment: 'within_range' | 'above_range' | 'below_range' | 'unknown' | null
-```
-
-### 1.2 Problem Statement
-
-| Aspect | Status |
-|--------|--------|
-| Data structures defined | ✅ Done |
-| Collected in onboarding | ❌ Not implemented |
-| Displayed in matches | ❌ Not implemented |
-| Calculated in algorithm | ❌ Not implemented |
-
----
-
-## 2. Architecture
-
-```mermaid
-flowchart TD
-    A[Talent Onboarding Step 5] -->|Saves| B[talents.compensation_profile JSONB]
-    C[Brand posts Opportunity] -->|Defines| D[opportunities.compensation_range JSONB]
-    B --> E[Matching Algorithm]
-    D --> E
-    E -->|Calculates| F[matches.compensation_alignment]
-    F --> G[Brand sees alignment badge]
-    F --> H[Talent sees fit indicator]
-    B --> I[Future: Insights Report]
-```
-
----
-
-## 3. Implementation Plan
-
-### Phase 1: Collection (Talent Onboarding)
-
-**Objective**: Add Step 5 "Your Compensation" to the onboarding wizard
-
-#### 3.1.1 Step 5 Form Structure
-
-```
-Step 5: Your compensation (optional but recommended)
-├── Current Package
-│   ├── Annual base salary (numeric input)
-│   ├── Annual variable/bonus (numeric input, optional)
-│   └── Currency (dropdown, EUR default)
-├── Expectations  
-│   ├── Target total package (numeric input or slider)
-│   └── Flexibility (radio: "willing to discuss" / "firm")
-└── Privacy
-    └── Checkbox: "Never show my exact figures to brands"
-```
-
-#### 3.1.2 New OnboardingData Fields
+### Interface TypeScript
 
 ```typescript
-// Add to OnboardingData interface in app/talent/onboarding/page.tsx
 interface OnboardingData {
-  // ... existing fields ...
-  
-  // Step 5: Compensation
-  current_base: number | null
-  current_variable: number | null  
+  // Step 5: Compensation (7 key fields for luxury retail)
+  contract_type: string          // CDI, CDD, Intérim, Freelance
+  brand_segment: string          // ultra_luxury, luxury, premium, accessible_luxury
+  compensation_region: string    // france_paris, france_province, suisse, uae_dubai, etc.
+  current_base: number | null    // Annual base salary (gross)
+  variable_percentage: number | null  // Variable as % of base (15-60% typical)
+  has_commission: boolean        // Individual sales commission Y/N
+  commission_rate: number | null // Commission rate (1-10%)
+  current_benefits: string[]     // Multi-select benefits
   currency: string
   expectations: number | null
   salary_flexibility: 'flexible' | 'firm'
@@ -106,223 +47,162 @@ interface OnboardingData {
 }
 ```
 
-#### 3.1.3 Files to Create/Modify
+### Stockage JSONB (Supabase)
 
-| File | Action | Description |
-|------|--------|-------------|
-| [`app/talent/onboarding/steps/step-compensation.tsx`](app/talent/onboarding/steps/step-compensation.tsx) | CREATE | New step component |
-| [`app/talent/onboarding/page.tsx`](app/talent/onboarding/page.tsx:13) | MODIFY | Add Step 5, update STEPS array |
-| [`lib/types/database.ts`](lib/types/database.ts:53) | OPTIONAL | Add flexibility field if needed |
-
-#### 3.1.4 UI Mockup
-
-```
-┌─────────────────────────────────────────────────────┐
-│ Step 5 of 5: Your compensation                      │
-│ Help us match you with the right opportunities      │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│ 💰 Current Package                                  │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Annual base salary (gross)                      │ │
-│ │ ┌──────────────────────────┐  ┌───────────────┐ │ │
-│ │ │ 45000                    │  │ EUR        ▼  │ │ │
-│ │ └──────────────────────────┘  └───────────────┘ │ │
-│ │                                                 │ │
-│ │ Annual variable/bonus (optional)               │ │
-│ │ ┌──────────────────────────┐                   │ │
-│ │ │ 8000                     │                   │ │
-│ │ └──────────────────────────┘                   │ │
-│ └─────────────────────────────────────────────────┘ │
-│                                                     │
-│ 🎯 Your Expectations                               │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ Target total package                           │ │
-│ │ ┌──────────────────────────┐                   │ │
-│ │ │ 60000                    │                   │ │
-│ │ └──────────────────────────┘                   │ │
-│ │                                                 │ │
-│ │ How flexible are you?                          │ │
-│ │ ○ Willing to discuss for the right role        │ │
-│ │ ● This is my minimum                           │ │
-│ └─────────────────────────────────────────────────┘ │
-│                                                     │
-│ 🔒 Privacy                                         │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ ☑ Never show my exact figures to brands        │ │
-│ │   (They'll only see "Within range" or not)     │ │
-│ └─────────────────────────────────────────────────┘ │
-│                                                     │
-│ ℹ️ This information is confidential and used      │
-│    only for matching accuracy.                     │
-│                                                     │
-├─────────────────────────────────────────────────────┤
-│ [← Back]                           [Complete →]    │
-└─────────────────────────────────────────────────────┘
-```
-
----
-
-### Phase 2: Display in Matching
-
-**Objective**: Show compensation alignment to both brands and talents
-
-#### 3.2.1 Alignment Calculation Logic
-
-```typescript
-function calculateCompensationAlignment(
-  talentExpectations: number | null,
-  opportunityMin: number | null,
-  opportunityMax: number | null
-): CompensationAlignment {
-  if (!talentExpectations || !opportunityMin || !opportunityMax) {
-    return 'unknown'
-  }
-  
-  if (talentExpectations <= opportunityMax && talentExpectations >= opportunityMin) {
-    return 'within_range'
-  }
-  
-  if (talentExpectations > opportunityMax) {
-    return 'above_range'
-  }
-  
-  if (talentExpectations < opportunityMin) {
-    return 'below_range'
-  }
-  
-  return 'unknown'
+```sql
+-- talents.compensation_profile JSONB structure:
+{
+  "contract_type": "cdi",
+  "brand_segment": "luxury",
+  "compensation_region": "france_paris",
+  "current_base": 45000,
+  "variable_percentage": 25,
+  "has_commission": true,
+  "commission_rate": 2.5,
+  "current_benefits": ["staff_discount", "tickets_restaurant", "mutuelle"],
+  "currency": "EUR",
+  "expectations": 55000,
+  "salary_flexibility": "flexible",
+  "hide_exact_figures": true
 }
 ```
 
-#### 3.2.2 Brand View (Pipeline/Matches)
+## Benchmarks Salariaux par Niveau et Segment
 
-Display badge on each talent match card:
+### Fourchettes France 2024 (en EUR)
 
-| Alignment | Badge | Color |
-|-----------|-------|-------|
-| `within_range` | 🟢 Within range | Green |
-| `above_range` | 🟡 Above range (+X%) | Yellow |
-| `below_range` | 🔵 Below range | Blue (rare) |
-| `unknown` | ⚪ Unknown | Grey |
+| Niveau | Ultra Luxury | Luxury | Premium | Accessible Luxury |
+|--------|--------------|--------|---------|-------------------|
+| **L1** Sales Associate | 28-35K (32K avg) | 26-32K (29K avg) | 25-30K (27.5K avg) | 24-28K (26K avg) |
+| **L2** Senior SA | 32-40K (36K avg) | 30-38K (34K avg) | 28-35K (31.5K avg) | 26-32K (29K avg) |
+| **L3** Team Lead | 38-48K (43K avg) | 35-45K (40K avg) | 32-42K (37K avg) | 30-38K (34K avg) |
+| **L4** Asst Manager | 45-55K (50K avg) | 42-52K (47K avg) | 38-48K (43K avg) | 35-45K (40K avg) |
+| **L5** Store Manager | 60-90K (75K avg) | 50-80K (65K avg) | 45-70K (57.5K avg) | 40-60K (50K avg) |
+| **L6** Area Manager | 80-120K (100K avg) | 70-100K (85K avg) | 60-90K (75K avg) | 55-80K (67.5K avg) |
+| **L7** Regional Dir | 120-180K (150K avg) | 100-150K (125K avg) | 90-130K (110K avg) | 80-120K (100K avg) |
+| **L8** VP/Country Mgr | 180-300K (240K avg) | 150-250K (200K avg) | 120-200K (160K avg) | 100-180K (140K avg) |
 
-**Example display:**
+### Ratios Variable/Fixe par Niveau
+
+| Niveau | Min % | Max % |
+|--------|-------|-------|
+| L1 Sales Associate | 15% | 25% |
+| L2 Senior SA | 18% | 28% |
+| L3 Team Lead | 20% | 32% |
+| L4 Assistant Manager | 22% | 35% |
+| L5 Store Manager | 25% | 40% |
+| L6 Area Manager | 35% | 50% |
+| L7 Regional Director | 40% | 60% |
+| L8 VP/Country Manager | 50% | 70% |
+
+### Ratios Variable par Segment de Marque
+
+| Segment | Variable Ratio | Commission | Staff Discount |
+|---------|---------------|------------|----------------|
+| Ultra Luxury (Hermès, Chanel) | 10-20% | Rare/absente | 40-50% |
+| Luxury (LVMH, Kering) | 20-35% | 1-3% | 25-35% |
+| Premium (Ralph Lauren, Coach) | 30-45% | 3-5% | 30-40% |
+| Accessible Luxury (ba&sh, Maje) | 35-50% | 3-7% | 30-35% |
+
+## Variations Géographiques
+
+| Région | Premium vs France Province | Notes |
+|--------|---------------------------|-------|
+| France - Paris | +15-25% | Intra-muros, zones touristiques |
+| France - Province | Baseline | Réference |
+| Suisse | +20-30% | Genève, Zurich (coût vie +40%) |
+| UAE / Dubaï | +40-60% | Tax-free, packages nets |
+| Reste EMEA | Variable | Selon pays |
+| Asie | +30-50% | HK, Singapore (logement rarement inclus) |
+| Amériques | Variable | US, Canada, Latam |
+
+## Types de Variable Détaillés
+
+### 1. Commission Individuelle (60-70% des maisons)
+- **Ultra Luxury**: 0.5-1.5% (faible, focus service)
+- **Luxury**: 1-3% (LVMH, Kering)
+- **Premium/Accessible**: 3-7% (motivation commerciale forte)
+- **Joaillerie/Horlogerie**: 3-5% (cycles de vente longs)
+
+### 2. Prime sur Objectifs Quantitatifs
+- Bonus mensuel/trimestriel basé sur CA vs budget
+- Poids: 10-20% (SA), 20-30% (Store Manager)
+- Seuils: 80% → 100% → 120%
+
+### 3. Prime sur Objectifs Qualitatifs
+- NPS/Client satisfaction: 2-5%
+- Mystery shopping: 1-3%
+- CRM data quality: 1-2%
+- Prévalence: 80% Ultra Luxury/Luxury
+
+### 4. Bonus Pool Maison
+- Enveloppe: 2-5% masse salariale magasin
+- Distribution: Performance collective + ancienneté
+- Exemple Hermès: 17 mois de salaire total
+
+### 5. 13ème Mois
+- Obligatoire CCN Commerce en France
+- 100% France, 80% Europe, rare hors UE
+
+### 6. Participation / Intéressement
+- Obligatoire si > 50 employés
+- Montants: 1-6 mois selon résultats
+
+## Avantages en Nature
+
+| ID | Avantage | Valeur Estimée |
+|----|----------|----------------|
+| `staff_discount` | Staff Discount | 20-50% |
+| `uniform` | Uniforme / Allowance | €300-800/an |
+| `tickets_restaurant` | Tickets Restaurant | €1,200-2,000/an |
+| `mutuelle` | Mutuelle | €1,000-3,000/an (employeur) |
+| `phone_transport` | Phone / Transport | €600-1,800/an |
+| `private_sales` | Private Sales Access | -30 à -50% |
+| `thirteenth_month` | 13ème Mois | 1 mois salaire |
+| `participation` | Participation/Intéressement | 1-6 mois |
+
+## Utilisation dans le Matching
+
+### Calcul d'Alignement Compensation
+
+```typescript
+function calculateCompensationAlignment(
+  talentProfile: CompensationProfile,
+  opportunity: OpportunityCompensation
+): 'within_range' | 'above_range' | 'below_range' | 'unknown' {
+  
+  const talentTotal = calculateTotalPackage(talentProfile)
+  const oppRange = opportunity.compensation_range
+  
+  if (!oppRange.min_base || !oppRange.max_base) return 'unknown'
+  
+  const oppMin = oppRange.min_base * (1 + (oppRange.variable_pct || 0) / 100)
+  const oppMax = oppRange.max_base * (1 + (oppRange.variable_pct || 0) / 100)
+  
+  if (talentTotal >= oppMin && talentTotal <= oppMax) return 'within_range'
+  if (talentTotal > oppMax) return 'above_range'
+  return 'below_range'
+}
 ```
-┌─────────────────────────────────────┐
-│ Marie D. - Senior Sales Associate   │
-│ 🟢 Within range                     │
-│ L3 · Watches · Paris · 92% match   │
-└─────────────────────────────────────┘
-```
 
-#### 3.2.3 Talent View (Opportunities)
+### Benchmark Intelligence
 
-Display fit indicator on each opportunity card:
+Le système utilise automatiquement les benchmarks pour:
+1. **Validation des données** - Alerter si valeurs hors fourchettes typiques
+2. **Estimation manquantes** - Compléter les champs optionnels via benchmarks
+3. **Score de matching** - Pondérer l'alignement compensation dans le score global
 
-```
-┌─────────────────────────────────────┐
-│ Senior Sales Advisor - Dior         │
-│ 💰 This role is within your range   │
-│ L3 · Fashion · Paris                │
-└─────────────────────────────────────┘
+## Confidentialité
 
-┌─────────────────────────────────────┐
-│ Sales Associate - Chanel            │
-│ ⚠️ This role may be below your exp. │
-│ L2 · Fashion · Lyon                 │
-└─────────────────────────────────────┘
-```
+- **hide_exact_figures = true** (par défaut): Les marques voient uniquement l'alignement ('within_range', 'above_range', 'below_range')
+- **hide_exact_figures = false**: Les marques peuvent voir les fourchettes exactes après mutual match
 
-#### 3.2.4 Files to Modify
+## Sources de Référence
 
-| File | Changes |
-|------|---------|
-| [`app/brand/pipeline/page.tsx`](app/brand/pipeline/page.tsx) | Add alignment badge to match cards |
-| [`app/talent/opportunities/page.tsx`](app/talent/opportunities/page.tsx) | Add fit indicator to opportunity cards |
-| [`lib/matching/algorithm.ts`](lib/matching/algorithm.ts) | Add compensation alignment calculation |
+- Mercer Luxury and Lifestyle Retail Compensation Survey 2024
+- Études sectorielles INSEEC/EMLV
+- Données Indeed/LinkedIn actualisées trimestriellement
 
 ---
 
-### Phase 3: Future - Market Positioning Report
-
-**Target page**: `app/talent/insights/compensation/page.tsx`
-
-**Features:**
-- Position vs market (percentile)
-- Anonymized benchmark by:
-  - Role Level (L1-L8)
-  - Region (EMEA/Americas/APAC)
-  - Division (Fashion/Watches/etc.)
-- Visual: "You are in the 65th percentile for Senior Sales Associates in EMEA Fashion"
-
-**Note**: This requires aggregated market data and is out of scope for initial implementation.
-
----
-
-## 4. Technical Considerations
-
-### 4.1 Database
-
-No migration needed - the JSONB columns already exist:
-- `talents.compensation_profile` (JSONB)
-- `opportunities.compensation_range` (JSONB)
-- `matches.compensation_alignment` (TEXT enum)
-
-### 4.2 Privacy
-
-- Exact salary figures are **never** exposed to brands
-- Brands only see the alignment status (within/above/below range)
-- Talents can optionally check "hide exact figures" for extra privacy assurance
-
-### 4.3 Currency Handling
-
-For MVP, assume same currency for comparison. Future enhancement:
-- Add currency conversion using daily rates
-- Store amounts in base currency (EUR) for comparison
-
-### 4.4 Optional vs Required
-
-Step 5 should be **optional but recommended**:
-- Talents can skip and complete later
-- Show "Complete your profile" prompt if compensation not filled
-- Profile completion % adjusted accordingly
-
----
-
-## 5. Success Metrics
-
-| Metric | Target |
-|--------|--------|
-| Step 5 completion rate | >60% |
-| Compensation data fill rate | >70% of approved talents |
-| Match accuracy improvement | +15% (measured by hire success) |
-
----
-
-## 6. Implementation Checklist
-
-### Phase 1: Collection ✅ COMPLETED
-- [x] Create `step-compensation.tsx` component
-- [x] Add Step 5 to onboarding wizard
-- [x] Update `OnboardingData` interface
-- [x] Save `compensation_profile` to database
-- [x] Privacy checkbox to hide exact figures
-
-### Phase 2: Display ✅ COMPLETED
-- [x] Add `calculateCompensationAlignment` function in `lib/matching/algorithm.ts`
-- [x] Add `getCompensationBadgeInfo` helper function
-- [x] Display badge on brand pipeline view (`app/brand/pipeline/page.tsx`)
-- [x] Display fit indicator on talent opportunities (`app/talent/opportunities/page.tsx`)
-- [x] Prompt to add salary expectations if not set
-
-### Phase 3: Future 🔮
-- [ ] Design insights page mockup
-- [ ] Gather market benchmark data
-- [ ] Build percentile calculation
-- [ ] Create visualization components
-
----
-
-*Document Version: 2.0 (Simplified)*
-*Created: December 2024*
-*For: TailorShift V7 Platform*
+*Document créé le {{ date }} - TailorShift V7*

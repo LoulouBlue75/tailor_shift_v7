@@ -40,13 +40,21 @@ export interface OnboardingData {
   target_locations: string[]
   mobility: string
   timeline: string
-  // Step 5: Compensation
-  current_base: number | null
-  current_variable: number | null
+  // Step 5: Compensation (Enhanced - 7 key fields for luxury retail)
+  contract_type: string  // CDI, CDD, Intérim, Freelance
+  brand_segment: string  // ultra_luxury, luxury, premium, accessible_luxury
+  compensation_region: string  // france_paris, france_province, suisse, uae_dubai, etc.
+  current_base: number | null  // Annual base salary (gross)
+  variable_percentage: number | null  // Variable as % of base (15-60% typical)
+  has_commission: boolean  // Individual sales commission Y/N
+  commission_rate: number | null  // Commission rate (1-10%)
+  current_benefits: string[]  // Multi-select benefits
   currency: string
   expectations: number | null
   salary_flexibility: 'flexible' | 'firm'
   hide_exact_figures: boolean
+  // Legacy field for backwards compatibility
+  current_variable: number | null
   // Step 6: Dream Brands
   target_brands: string[]
 }
@@ -57,22 +65,29 @@ const initialData: OnboardingData = {
   phone: '',
   linkedin_url: '',
   current_role_level: '',
-  store_tier_experience: [],  // Changed to array
+  store_tier_experience: [],
   years_in_luxury: 0,
-  current_employer: '',  // Renamed from current_maison to match DB column
+  current_employer: '',
   current_location: '',
   divisions_expertise: [],
   target_role_levels: [],
   target_locations: [],
   mobility: 'national',
   timeline: 'passive',
-  // Compensation defaults
+  // Compensation defaults (enhanced 7 fields)
+  contract_type: 'cdi',
+  brand_segment: '',
+  compensation_region: '',
   current_base: null,
-  current_variable: null,
+  variable_percentage: null,
+  has_commission: false,
+  commission_rate: null,
+  current_benefits: [],
   currency: 'EUR',
   expectations: null,
   salary_flexibility: 'flexible',
   hide_exact_figures: true,
+  current_variable: null,  // Legacy field
   // Dream Brands defaults
   target_brands: [],
 }
@@ -107,9 +122,16 @@ export default function TalentOnboardingPage() {
 
       if (talent) {
         setTalentId(talent.id)
-        // Extract compensation profile with proper typing
+        // Extract compensation profile with proper typing (enhanced 7 fields)
         const compensationProfile = talent.compensation_profile as {
+          contract_type?: string
+          brand_segment?: string
+          compensation_region?: string
           current_base?: number | null
+          variable_percentage?: number | null
+          has_commission?: boolean
+          commission_rate?: number | null
+          current_benefits?: string[]
           current_variable?: number | null
           currency?: string
           expectations?: number | null
@@ -125,7 +147,7 @@ export default function TalentOnboardingPage() {
           current_role_level: talent.current_role_level || '',
           store_tier_experience: talent.store_tier_experience || [],
           years_in_luxury: talent.years_in_luxury || 0,
-          current_employer: talent.current_employer || '',  // Fixed: use current_employer
+          current_employer: talent.current_employer || '',
           current_location: talent.current_location || '',
           divisions_expertise: talent.divisions_expertise || [],
           target_role_levels: talent.career_preferences?.target_role_levels || [],
@@ -133,13 +155,20 @@ export default function TalentOnboardingPage() {
           target_brands: talent.career_preferences?.target_brands || [],
           mobility: talent.career_preferences?.mobility || 'national',
           timeline: talent.career_preferences?.timeline || 'passive',
-          // Load compensation data
+          // Load enhanced compensation data
+          contract_type: compensationProfile?.contract_type || 'cdi',
+          brand_segment: compensationProfile?.brand_segment || '',
+          compensation_region: compensationProfile?.compensation_region || '',
           current_base: compensationProfile?.current_base ?? null,
-          current_variable: compensationProfile?.current_variable ?? null,
+          variable_percentage: compensationProfile?.variable_percentage ?? null,
+          has_commission: compensationProfile?.has_commission || false,
+          commission_rate: compensationProfile?.commission_rate ?? null,
+          current_benefits: compensationProfile?.current_benefits || [],
           currency: compensationProfile?.currency || 'EUR',
           expectations: compensationProfile?.expectations ?? null,
           salary_flexibility: compensationProfile?.salary_flexibility || 'flexible',
           hide_exact_figures: compensationProfile?.hide_exact_figures ?? true,
+          current_variable: compensationProfile?.current_variable ?? null,
         })
       }
     }
@@ -205,14 +234,23 @@ export default function TalentOnboardingPage() {
             mobility: data.mobility,
             timeline: data.timeline,
           },
-          // Save compensation profile as JSONB
+          // Save enhanced compensation profile as JSONB (7 key fields for luxury retail matching)
           compensation_profile: {
+            // Core 7 fields
+            contract_type: data.contract_type,
+            brand_segment: data.brand_segment,
+            compensation_region: data.compensation_region,
             current_base: data.current_base,
-            current_variable: data.current_variable,
+            variable_percentage: data.variable_percentage,
+            has_commission: data.has_commission,
+            commission_rate: data.commission_rate,
+            current_benefits: data.current_benefits,
+            // Additional fields
             currency: data.currency,
             expectations: data.expectations,
             salary_flexibility: data.salary_flexibility,
             hide_exact_figures: data.hide_exact_figures,
+            current_variable: data.current_variable,  // Legacy field
           },
           status: 'pending_review',
           profile_completion_pct: completion,
@@ -277,9 +315,15 @@ export default function TalentOnboardingPage() {
       case 4:
         return data.timeline !== ''
       case 5:
-        // Compensation step is optional - always allow proceeding
-        // But encourage filling if expectations are set
-        return true
+        // Compensation step requires the 7 key fields (except commission which is optional)
+        // Required: contract_type, brand_segment, compensation_region, current_base, variable_percentage
+        return (
+          data.contract_type !== '' &&
+          data.brand_segment !== '' &&
+          data.compensation_region !== '' &&
+          data.current_base !== null &&
+          data.current_base > 0
+        )
       case 6:
         // Dream Brands is optional but recommended
         return true

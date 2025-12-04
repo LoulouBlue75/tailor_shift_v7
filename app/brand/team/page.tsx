@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button, Input, Card, CardHeader, CardTitle, CardContent, Badge } from '@/components/ui'
 import { Plus, Mail, Trash2, Edit, Users, Shield, AlertTriangle } from 'lucide-react'
-import { checkBrandPermission, getBrandTeamMembers } from '@/lib/auth/brand-rbac'
+import { checkBrandPermissionAction, getBrandTeamMembersAction } from './actions'
 
 const ROLES = [
   { id: 'owner', name: 'Owner', desc: 'Tous les droits', color: 'bg-purple-100 text-purple-800' },
@@ -79,11 +79,11 @@ export default function BrandTeamPage() {
       }
 
       // Check permissions
-      const hasPermission = await checkBrandPermission(user.id, brand.id, 'manage_team')
+      const hasPermission = await checkBrandPermissionAction(user.id, brand.id, 'manage_team')
       setCanManageTeam(hasPermission)
 
       // Load team members
-      const teamMembers = await getBrandTeamMembers(brand.id)
+      const teamMembers = await getBrandTeamMembersAction(brand.id)
       setMembers(teamMembers as TeamMember[])
 
       // Load pending invitations

@@ -11,8 +11,9 @@
 1. [Simplification UX & Architecture](#1-simplification)
 2. [Système de Nudges & Engagement](#2-nudges)
 3. [Rapports & Micropaiements](#3-rapports)
-4. [Monétisation Brands & Activation](#4-monetisation)
-5. [Autres Idées](#5-autres)
+4. [Brand Assessments Personnalisés](#4-brand-assessments)
+5. [Monétisation Brands & Activation](#5-monetisation)
+6. [Autres Idées](#6-autres)
 
 ---
 
@@ -330,9 +331,274 @@ CREATE TABLE generated_reports (
 | PDF téléchargeable | ❌ | ✅ |
 | Marques compatibles | Top 3 | Top 10 |
 
+### 3.7 Badges d'Assessments Spécifiques (Côté Talent)
+
+Le profil talent affichera les **assessments spécifiques passés pour des marques** sous forme de badges :
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  VOS CERTIFICATIONS MARQUES                                  │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  🏅 Louis Vuitton Assessment    ✓ Passé le 15/11/2024       │
+│     Score: 87/100 - Niveau: Expert                          │
+│     [Télécharger certificat PDF]                            │
+│                                                              │
+│  🏅 Dior Culture Quiz           ✓ Passé le 02/12/2024       │
+│     Score: 92/100 - Niveau: Expert                          │
+│     [Télécharger certificat PDF]                            │
+│                                                              │
+│  ⏳ Hermès Assessment           En attente d'invitation      │
+│     [Demander l'accès]                                       │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Valeur ajoutée :**
+- Montre l'engagement du talent envers des marques spécifiques
+- Différencie les candidats lors du matching
+- Crée un historique de certifications vérifiables
+- Peut être partagé (LinkedIn, CV) via URL publique
+
 ---
 
-## 4. Monétisation Brands & Activation {#4-monetisation}
+## 4. Brand Assessments Personnalisés {#4-brand-assessments}
+
+### 4.1 Vision
+
+Permettre aux marques de créer leurs **propres assessments personnalisés**, en complément de l'assessment TailorShift 6D générique.
+
+### 4.2 Types d'Assessments Marque
+
+| Type | Description | Exemples |
+|------|-------------|----------|
+| **Culture Quiz** | Questions sur l'ADN, histoire, valeurs de la marque | "En quelle année Hermès a créé le Kelly bag ?" |
+| **Scénarios Situationnels** | Mise en situation spécifique à la marque | "Un client VIC demande un article épuisé..." |
+| **Connaissance Produit** | Quiz sur les collections, matériaux, savoir-faire | "Quel cuir est utilisé pour le Birkin ?" |
+| **Video Pitch** | Réponse vidéo à une question de la marque | "Présentez-vous en 60s comme si c'était un entretien" |
+
+### 4.3 Brand Assessment Builder (Côté Brand)
+
+Interface permettant aux marques de créer leurs assessments :
+
+```mermaid
+flowchart TB
+    subgraph Builder[Assessment Builder]
+        Create[Créer Assessment]
+        Questions[Ajouter Questions]
+        Config[Configurer]
+        Preview[Prévisualiser]
+        Publish[Publier]
+    end
+    
+    subgraph QuestionTypes[Types de Questions]
+        MCQ[QCM]
+        Scale[Échelle 1-10]
+        Open[Réponse ouverte]
+        Video[Réponse vidéo]
+        Situational[Scénario situationnel]
+    end
+    
+    subgraph Config_Options[Configuration]
+        Duration[Durée max]
+        PassingScore[Score minimum]
+        Mandatory[Obligatoire pour postuler ?]
+        Expiry[Durée de validité]
+    end
+    
+    Create --> Questions
+    QuestionTypes --> Questions
+    Questions --> Config
+    Config_Options --> Config
+    Config --> Preview --> Publish
+```
+
+### 4.4 Interface Brand - Création d'Assessment
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  BRAND > ASSESSMENTS > Nouveau                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  📝 INFORMATIONS GÉNÉRALES                                         │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  Nom: Culture Quiz Louis Vuitton                            │   │
+│  │  Description: Testez vos connaissances sur l'univers LV     │   │
+│  │  Durée estimée: 15 minutes                                   │   │
+│  │  Score minimum: 70%                                          │   │
+│  │  ☑ Obligatoire pour postuler à nos offres                   │   │
+│  │  ☐ Valide 6 mois après passage                              │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  📋 QUESTIONS (8)                                                  │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  1. [QCM] En quelle année Louis Vuitton a-t-il été fondé ?  │   │
+│  │     a) 1821  b) 1854 ✓  c) 1892  d) 1901                    │   │
+│  │     Points: 10                                               │   │
+│  │     [Modifier] [Supprimer] [↑] [↓]                          │   │
+│  ├─────────────────────────────────────────────────────────────┤   │
+│  │  2. [Situationnel] Un client demande le Keepall 55 qui...   │   │
+│  │     → Réponse ouverte évaluée par IA                        │   │
+│  │     Points: 20                                               │   │
+│  │     [Modifier] [Supprimer] [↑] [↓]                          │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  [+ Ajouter une question]                                          │
+│                                                                     │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                     │
+│  [Prévisualiser]  [Enregistrer brouillon]  [Publier]               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.5 Scénario d'Invitation Automatique
+
+**Trigger :** Quand une brand ouvre une position, le système identifie les talents "high potential" et leur propose proactivement de passer l'assessment de la marque.
+
+```mermaid
+sequenceDiagram
+    actor Brand
+    participant System as TailorShift
+    participant Talent
+    
+    Brand->>System: Crée nouvelle opportunité
+    System->>System: Identifier talents high-potential
+    
+    Note over System: Critères high-potential:
+    Note over System: - Dream Brand match
+    Note over System: - Score 6D >= 70%
+    Note over System: - Role level compatible
+    Note over System: - Location compatible
+    
+    System->>System: Filtrer talents n'ayant pas passé<br/>l'assessment de la marque
+    
+    loop Pour chaque talent éligible
+        System->>Talent: Notification: Hermès recrute !
+        Note over Talent: Votre Dream Brand #1 a ouvert<br/>une position qui vous correspond.
+        Note over Talent: Passez l'assessment Hermès<br/>pour être prioritaire.
+        
+        alt Talent accepte
+            Talent->>System: Commence assessment marque
+            Talent->>System: Termine assessment
+            System->>System: Ajouter badge au profil
+            System->>System: Boost match score +10
+            System->>Brand: Notifier: Nouveau candidat qualifié
+        else Talent décline
+            Talent->>System: Pas maintenant
+            System->>System: Ne plus proposer pour cette offre
+        end
+    end
+```
+
+### 4.6 Critères d'Invitation Automatique
+
+```typescript
+interface AutoInviteCriteria {
+  // Conditions obligatoires
+  is_dream_brand: boolean           // La marque est dans les Dream Brands du talent
+  role_level_compatible: boolean    // Niveau du talent ± 1 niveau requis
+  
+  // Conditions de score
+  tailor_shift_assessment: {
+    completed: boolean
+    min_overall_score: number       // 70% minimum
+  }
+  
+  // Conditions géographiques
+  location_match: 'exact' | 'national' | 'international'
+  
+  // Exclusions
+  already_passed_brand_assessment: boolean  // false pour être invité
+  declined_invitation_recently: boolean     // false (< 30 jours)
+}
+
+// Exemple de règle d'invitation
+const hermesCriteria: AutoInviteCriteria = {
+  is_dream_brand: true,
+  role_level_compatible: true,  // L4-L6 pour un poste L5
+  tailor_shift_assessment: {
+    completed: true,
+    min_overall_score: 75,      // Hermès est plus exigeant
+  },
+  location_match: 'national',
+  already_passed_brand_assessment: false,
+  declined_invitation_recently: false,
+}
+```
+
+### 4.7 Bénéfices pour les Parties Prenantes
+
+| Partie | Bénéfice |
+|--------|----------|
+| **Talent** | Accès prioritaire aux opportunités de leur Dream Brand |
+| **Brand** | Pipeline de candidats pré-qualifiés et motivés |
+| **TailorShift** | Meilleur engagement, différenciation concurrentielle |
+
+### 4.8 Message d'Invitation (Email/Push)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│  🌟 OPPORTUNITÉ EXCLUSIVE                                          │
+│                                                                     │
+│  Bonjour Marie,                                                    │
+│                                                                     │
+│  Votre Dream Brand #1, Hermès, vient d'ouvrir une position         │
+│  qui correspond parfaitement à votre profil !                       │
+│                                                                     │
+│  📍 Store Manager - Flagship Paris                                 │
+│  💰 Salaire: dans votre fourchette                                 │
+│  📊 Match score: 89%                                                │
+│                                                                     │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                     │
+│  Pour maximiser vos chances et montrer votre engagement,           │
+│  passez l'Assessment Culture Hermès (15 min).                      │
+│                                                                     │
+│  Les candidats ayant complété l'assessment sont                    │
+│  contactés en priorité par les recruteurs.                         │
+│                                                                     │
+│  [🎯 Passer l'Assessment maintenant]                               │
+│                                                                     │
+│  [Plus tard]  [Ne plus me proposer pour cette offre]               │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.9 Tables DB pour Brand Assessments
+
+```sql
+-- Assessments créés par les brands (existe déjà partiellement)
+-- Enrichir avec:
+ALTER TABLE brand_assessments ADD COLUMN auto_invite_enabled BOOLEAN DEFAULT true;
+ALTER TABLE brand_assessments ADD COLUMN auto_invite_min_ts_score INTEGER DEFAULT 70;
+ALTER TABLE brand_assessments ADD COLUMN validity_days INTEGER DEFAULT 180;
+ALTER TABLE brand_assessments ADD COLUMN is_mandatory_for_apply BOOLEAN DEFAULT false;
+
+-- Invitations envoyées
+CREATE TABLE brand_assessment_invitations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  talent_id UUID REFERENCES talents(id),
+  assessment_id UUID REFERENCES brand_assessments(id),
+  opportunity_id UUID REFERENCES opportunities(id),
+  status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, declined, completed, expired
+  invited_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  responded_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  score INTEGER,
+  passed BOOLEAN,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour les requêtes fréquentes
+CREATE INDEX idx_invitations_talent_status ON brand_assessment_invitations(talent_id, status);
+CREATE INDEX idx_invitations_assessment ON brand_assessment_invitations(assessment_id);
+```
+
+---
+
+## 5. Monétisation Brands & Activation {#5-monetisation}
 
 ### 4.1 Modèle de Validation Brand
 
@@ -512,7 +778,7 @@ ALTER TABLE brands ADD COLUMN current_contract_id UUID REFERENCES brand_contract
 
 ---
 
-## 5. Autres Idées {#5-autres}
+## 6. Autres Idées {#6-autres}
 
 ### 5.1 Fonctionnalités Futures (Non Priorisées)
 
@@ -551,6 +817,7 @@ ALTER TABLE brands ADD COLUMN current_contract_id UUID REFERENCES brand_contract
 | Date | Version | Modifications |
 |------|---------|---------------|
 | 2024-12-04 | 1.0 | Création initiale |
+| 2024-12-04 | 1.1 | Ajout Brand Assessments personnalisés, badges côté talent, invitation automatique |
 
 ---
 

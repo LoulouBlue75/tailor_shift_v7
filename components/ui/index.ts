@@ -6,3 +6,14 @@ export { Badge, badgeVariants, type BadgeProps } from './badge'
 export { Skeleton } from './skeleton'
 export { Logo } from './logo'
 export { UserMenu } from './user-menu'
+export {
+  PendingValidationBanner,
+  getBannerTypeFromStatus,
+  type ValidationBannerType
+} from './pending-validation-banner'
+export {
+  RestrictedFeatureGate,
+  RestrictedButton,
+  RestrictedLink,
+  useAccountAccess
+} from './restricted-feature-gate'

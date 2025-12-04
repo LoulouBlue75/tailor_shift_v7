@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu } from '@/components/ui'
+import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu, PendingValidationBanner, getBannerTypeFromStatus } from '@/components/ui'
 import Link from 'next/link'
 import {
   User, MapPin, Briefcase, MessageCircle, Target,
@@ -20,6 +20,7 @@ export default async function TalentDashboardPage() {
     .eq('id', user.id)
     .single()
 
+  // Allow users who completed onboarding to see dashboard, even if pending
   if (!profile?.onboarding_completed) {
     redirect('/talent/onboarding')
   }
@@ -108,8 +109,17 @@ export default async function TalentDashboardPage() {
           </Link>
         </div>
 
-        {/* Profile Completion Alert */}
-        {completionPct < 100 && (
+        {/* Validation Status Banner */}
+        {talent?.status && talent.status !== 'approved' && (
+          <PendingValidationBanner
+            type={getBannerTypeFromStatus('talent', talent.status) || 'talent_pending'}
+            rejectionReason={talent.rejection_reason || undefined}
+            editProfilePath="/talent/profile/edit"
+          />
+        )}
+
+        {/* Profile Completion Alert - only show if approved */}
+        {talent?.status === 'approved' && completionPct < 100 && (
           <Card className="mb-6 border-[var(--gold)] bg-[var(--gold-light)]/20">
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">

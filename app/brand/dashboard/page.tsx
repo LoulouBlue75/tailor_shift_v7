@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu } from '@/components/ui'
+import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu, PendingValidationBanner, getBannerTypeFromStatus } from '@/components/ui'
 import Link from 'next/link'
 import {
   Building2, MapPin, Users, Briefcase, Plus,
@@ -25,11 +25,24 @@ export default async function BrandDashboardPage() {
 
   const { data: brand } = await supabase
     .from('brands')
-    .select('*')
+    .select('*, status')
     .eq('profile_id', user.id)
     .single()
 
   if (!brand) redirect('/brand/onboarding')
+
+  // Check for pending team request (for users who joined via team request)
+  const { data: teamRequest } = await supabase
+    .from('brand_team_requests')
+    .select('id, status, brand_id')
+    .eq('profile_id', user.id)
+    .eq('status', 'pending')
+    .single()
+
+  // Determine the brand status for the banner
+  const brandStatus = brand.status || (brand.verified ? 'verified' : 'pending_verification')
+  const hasTeamRequest = !!teamRequest
+  const teamRequestStatus = teamRequest?.status
 
   // Get store count
   const { count: storeCount } = await supabase
@@ -161,6 +174,20 @@ export default async function BrandDashboardPage() {
             </Button>
           </Link>
         </div>
+
+        {/* Validation Status Banner */}
+        {(() => {
+          const bannerType = getBannerTypeFromStatus('brand', brandStatus, hasTeamRequest, teamRequestStatus)
+          if (bannerType) {
+            return (
+              <PendingValidationBanner
+                type={bannerType}
+                brandName={brand.name}
+              />
+            )
+          }
+          return null
+        })()}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

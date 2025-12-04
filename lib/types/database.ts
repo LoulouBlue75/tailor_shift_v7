@@ -14,7 +14,11 @@ export type AssessmentLevel = 'developing' | 'proficient' | 'advanced' | 'expert
 export type AssessmentStatus = 'pending' | 'in_progress' | 'completed' | 'expired'
 export type OpportunityStatus = 'draft' | 'active' | 'paused' | 'filled' | 'cancelled'
 export type MatchStatus = 'matched' | 'interested' | 'screening' | 'interviewing' | 'offer' | 'hired' | 'declined' | 'expired'
-export type TeamRole = 'owner' | 'admin' | 'recruiter' | 'viewer'
+export type TeamRole = 'owner' | 'admin' | 'recruiter' | 'viewer' | 'admin_global' | 'admin_brand' | 'hr_global' | 'hr_regional' | 'manager_store'
+export type GroupRole = 'group_owner' | 'group_admin' | 'group_hr' | 'group_viewer'
+export type Department = 'direction' | 'hr' | 'operations' | 'business'
+export type TeamRequestStatus = 'pending' | 'approved' | 'rejected' | 'expired'
+export type AccountStatus = 'pending' | 'active' | 'suspended'
 export type ConnectionStatus = 'pending' | 'accepted' | 'declined' | 'blocked'
 export type EndorsementStatus = 'pending' | 'verified' | 'expired'
 export type LearningStatus = 'not_started' | 'in_progress' | 'completed'
@@ -365,16 +369,69 @@ export interface Match {
 // ============================================================================
 // BRAND TEAM
 // ============================================================================
+export interface RoleScope {
+  geographic: 'global' | 'regional' | string[]
+  divisions: string[]
+  brands?: string[]
+  permissions?: string[]
+}
+
 export interface BrandTeamMember {
   id: string
   brand_id: string
   profile_id: string
   role: TeamRole
+  role_scope?: RoleScope
   invited_by: string | null
   invited_at: string
   accepted_at: string | null
   status: 'pending' | 'active' | 'deactivated'
   created_at: string
+}
+
+// ============================================================================
+// BRAND TEAM REQUESTS
+// ============================================================================
+export interface BrandTeamRequest {
+  id: string
+  brand_id: string
+  profile_id: string
+  email: string
+  department: Department
+  requested_role: string
+  requested_scope: RoleScope
+  job_title: string | null
+  request_message: string | null
+  status: TeamRequestStatus
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_notes: string | null
+  reviewer_level: 'brand' | 'group' | null
+  assigned_role: string | null
+  assigned_scope: RoleScope | null
+  requires_group_approval: boolean
+  group_approved_by: string | null
+  group_approved_at: string | null
+  created_at: string
+  updated_at: string
+  expires_at: string
+}
+
+// ============================================================================
+// GROUP TEAM MEMBERS
+// ============================================================================
+export interface GroupTeamMember {
+  id: string
+  group_id: string
+  profile_id: string
+  role: GroupRole
+  role_scope: RoleScope
+  invited_by: string | null
+  invited_at: string
+  accepted_at: string | null
+  status: 'pending' | 'active' | 'deactivated'
+  created_at: string
+  updated_at: string
 }
 
 // ============================================================================
@@ -545,7 +602,26 @@ export interface LuxuryGroup {
   id: string
   name: string
   maisons: string[]
+  status: 'active' | 'inactive'
   created_at: string
+}
+
+// ============================================================================
+// EXTENDED BRAND (with group link)
+// ============================================================================
+export interface BrandWithGroup extends Brand {
+  group_id: string | null
+  requires_group_approval: boolean
+  status: 'onboarding' | 'verified' | 'pending_verification' | 'active' | 'suspended'
+}
+
+// ============================================================================
+// EXTENDED PROFILE (with account status)
+// ============================================================================
+export interface ProfileWithStatus extends Profile {
+  account_status: AccountStatus
+  pending_team_request_id: string | null
+  department: Department | null
 }
 
 // ============================================================================

@@ -73,13 +73,11 @@ export default async function TalentDashboardPage() {
             </nav>
 
             {/* Right Side */}
-            <div className="flex items-center gap-4">
-              <button className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)] relative">
+            <div className="flex items-center gap-3">
+              <button className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)] hover:bg-[var(--grey-100)] rounded-full relative transition-colors">
                 <Bell className="w-5 h-5" />
+                {/* Notification badge placeholder */}
               </button>
-              <Link href="/settings" className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)]">
-                <Settings className="w-5 h-5" />
-              </Link>
               <UserMenu
                 initials={`${talent?.first_name?.[0] || ''}${talent?.last_name?.[0] || ''}`}
                 fullName={`${talent?.first_name || ''} ${talent?.last_name || ''}`}

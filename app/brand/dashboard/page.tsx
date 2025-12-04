@@ -1,11 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button } from '@/components/ui'
+import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu } from '@/components/ui'
 import Link from 'next/link'
-import { 
+import {
   Building2, MapPin, Users, Briefcase, Plus,
-  ChevronRight, Bell, Settings, Target, 
-  TrendingUp, Clock, CheckCircle, Store
+  ChevronRight, Bell, Target, Store
 } from 'lucide-react'
 
 export default async function BrandDashboardPage() {
@@ -97,22 +96,15 @@ export default async function BrandDashboardPage() {
             </nav>
 
             {/* Right Side */}
-            <div className="flex items-center gap-4">
-              <button className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)] relative">
+            <div className="flex items-center gap-3">
+              <button className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)] hover:bg-[var(--grey-100)] rounded-full relative transition-colors">
                 <Bell className="w-5 h-5" />
               </button>
-              <Link href="/settings" className="p-2 text-[var(--grey-600)] hover:text-[var(--charcoal)]">
-                <Settings className="w-5 h-5" />
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden md:block">
-                  <p className="text-sm font-medium">{brand.contact_name || 'Admin'}</p>
-                  <p className="text-xs text-[var(--grey-500)]">{brand.contact_role || 'Administrator'}</p>
-                </div>
-                <div className="w-8 h-8 rounded-full bg-[var(--charcoal)] flex items-center justify-center text-sm font-medium text-white">
-                  {brand.contact_name?.[0] || brand.name?.[0] || 'A'}
-                </div>
-              </div>
+              <UserMenu
+                initials={brand.contact_name?.[0] || brand.name?.[0] || 'A'}
+                fullName={brand.contact_name || 'Admin'}
+                email={profile?.email}
+              />
             </div>
           </div>
         </div>

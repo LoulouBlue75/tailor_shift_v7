@@ -231,6 +231,30 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Session Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LogOut className="w-5 h-5" />
+              Session
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="font-medium text-sm">Sign out</p>
+                <p className="text-small text-[var(--grey-600)]">Sign out of this device</p>
+              </div>
+              <form action="/auth/signout" method="POST">
+                <Button variant="secondary" size="sm" type="submit">
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Sign out
+                </Button>
+              </form>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Danger Zone */}
         <Card className="border-[var(--error)]">
           <CardHeader>
@@ -239,27 +263,14 @@ export default async function SettingsPage() {
               Danger Zone
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-medium text-sm">Sign out</p>
-                <p className="text-small text-[var(--grey-600)]">Sign out of all devices</p>
-              </div>
-              <form action="/auth/signout" method="POST">
-                <Button variant="ghost" size="sm" type="submit">
-                  <LogOut className="w-4 h-4 mr-1" />
-                  Sign out
-                </Button>
-              </form>
-            </div>
-
-            <div className="flex items-center justify-between py-2 pt-4 border-t border-[var(--grey-200)]">
               <div>
                 <p className="font-medium text-sm text-[var(--error)]">Delete account</p>
                 <p className="text-small text-[var(--grey-600)]">Permanently delete your account and all data</p>
               </div>
-              <Button variant="ghost" size="sm" className="text-[var(--error)] hover:bg-red-50">
-                Delete
+              <Button variant="destructive" size="sm">
+                Delete Account
               </Button>
             </div>
           </CardContent>

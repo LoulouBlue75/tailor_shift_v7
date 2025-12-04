@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Logo, Badge, Card, CardHeader, CardTitle, CardContent, Button, UserMenu, PendingValidationBanner, getBannerTypeFromStatus } from '@/components/ui'
+import { PendingTeamApprovals } from '@/components/brand/pending-team-approvals'
+import { checkBrandPermission } from '@/lib/auth/brand-rbac'
 import Link from 'next/link'
 import {
   Building2, MapPin, Users, Briefcase, Plus,
@@ -43,6 +45,9 @@ export default async function BrandDashboardPage() {
   const brandStatus = brand.status || (brand.verified ? 'verified' : 'pending_verification')
   const hasTeamRequest = !!teamRequest
   const teamRequestStatus = teamRequest?.status
+
+  // Check if user can manage team (to show pending approvals)
+  const canManageTeam = await checkBrandPermission(user.id, brand.id, 'manage_team')
 
   // Get store count
   const { count: storeCount } = await supabase
@@ -188,6 +193,13 @@ export default async function BrandDashboardPage() {
           }
           return null
         })()}
+
+        {/* Pending Team Approvals - show only for users who can manage team */}
+        {canManageTeam && (
+          <div className="mb-8">
+            <PendingTeamApprovals brandId={brand.id} />
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

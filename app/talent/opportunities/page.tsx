@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Logo, Badge, Card, CardContent, Button } from '@/components/ui'
+import { Logo, Badge, Card, CardContent, Button, PendingValidationBanner, getBannerTypeFromStatus, RestrictedFeatureGate, RestrictedButton } from '@/components/ui'
 import Link from 'next/link'
-import { MapPin, Building2, Heart, ChevronRight, Target, ArrowLeft, Filter, DollarSign, TrendingUp, TrendingDown, CheckCircle } from 'lucide-react'
+import { MapPin, Building2, Heart, ChevronRight, Target, ArrowLeft, Filter, DollarSign, TrendingUp, TrendingDown, CheckCircle, Lock } from 'lucide-react'
 import {
   calculateMatch,
   calculateCompensationAlignment,
@@ -141,6 +141,18 @@ export default async function TalentOpportunitiesPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Validation Status Banner */}
+        {(() => {
+          const bannerType = getBannerTypeFromStatus('talent', talent.status)
+          if (bannerType) {
+            return (
+              <div className="mb-6">
+                <PendingValidationBanner type={bannerType} />
+              </div>
+            )
+          }
+          return null
+        })()}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-h1 mb-1">Opportunities</h1>
@@ -299,15 +311,32 @@ export default async function TalentOpportunitiesPage() {
 
                     {/* Actions */}
                     <div className="flex flex-col gap-2 shrink-0">
-                      <Link href={`/talent/opportunities/${opp.id}`}>
-                        <Button size="sm">
-                          View
-                          <ChevronRight className="w-4 h-4 ml-1" />
-                        </Button>
-                      </Link>
-                      <Button variant="ghost" size="sm">
+                      <RestrictedFeatureGate
+                        requiredStatus="approved"
+                        currentStatus={talent.status}
+                        fallback={
+                          <Button size="sm" variant="ghost" disabled className="opacity-50">
+                            <Lock className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        }
+                      >
+                        <Link href={`/talent/opportunities/${opp.id}`}>
+                          <Button size="sm">
+                            View
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </Button>
+                        </Link>
+                      </RestrictedFeatureGate>
+                      <RestrictedButton
+                        requiredStatus="approved"
+                        currentStatus={talent.status}
+                        variant="ghost"
+                        size="sm"
+                        lockedMessage="Complete profile approval to save opportunities"
+                      >
                         <Heart className="w-4 h-4" />
-                      </Button>
+                      </RestrictedButton>
                     </div>
                   </div>
                 </CardContent>

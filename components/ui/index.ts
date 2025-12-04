@@ -6,6 +6,7 @@ export { Badge, badgeVariants, type BadgeProps } from './badge'
 export { Skeleton } from './skeleton'
 export { Logo } from './logo'
 export { UserMenu } from './user-menu'
+export { NotificationBell } from './notification-bell'
 export {
   PendingValidationBanner,
   getBannerTypeFromStatus,

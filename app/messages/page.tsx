@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Logo, Badge, Card, CardContent, Button, Input } from '@/components/ui'
-import { 
-  MessageCircle, Search, Send, ArrowLeft, 
-  Building2, User, Clock, Check, CheckCheck
+import { Logo, Badge, Card, CardContent, Button, Input, PendingValidationBanner, getBannerTypeFromStatus } from '@/components/ui'
+import {
+  MessageCircle, Search, Send, ArrowLeft,
+  Building2, User, Clock, Check, CheckCheck, Lock
 } from 'lucide-react'
 
 export default async function MessagesPage() {
@@ -30,6 +30,10 @@ export default async function MessagesPage() {
 
   const userType = talent ? 'talent' : 'brand'
   const userId = talent?.id || brand?.id
+
+  // Get account status for feature restrictions
+  const accountStatus = talent ? talent.status : (brand?.verified ? 'verified' : 'pending_verification')
+  const isApproved = ['approved', 'active', 'verified'].includes(accountStatus?.toLowerCase() || '')
 
   // Get conversations
   const { data: conversations } = await supabase
@@ -94,6 +98,33 @@ export default async function MessagesPage() {
       </header>
 
       <main className="max-w-6xl mx-auto">
+        {/* Show restriction for pending accounts */}
+        {!isApproved && (
+          <div className="p-6">
+            <div className="mb-4">
+              <PendingValidationBanner
+                type={userType === 'talent'
+                  ? getBannerTypeFromStatus('talent', accountStatus) || 'talent_pending'
+                  : getBannerTypeFromStatus('brand', accountStatus) || 'brand_pending'
+                }
+              />
+            </div>
+            <Card className="p-12 text-center">
+              <Lock className="w-12 h-12 mx-auto mb-4 text-[var(--grey-400)]" />
+              <h2 className="text-xl font-display mb-2">Messaging Not Available</h2>
+              <p className="text-[var(--grey-600)] mb-4">
+                {userType === 'talent'
+                  ? 'Complete your profile validation to unlock messaging features'
+                  : 'Verify your brand account to start messaging talents'}
+              </p>
+              <Link href={userType === 'talent' ? '/talent/dashboard' : '/brand/dashboard'}>
+                <Button>Back to Dashboard</Button>
+              </Link>
+            </Card>
+          </div>
+        )}
+
+        {isApproved && (
         <div className="flex h-[calc(100vh-64px)]">
           {/* Conversations List */}
           <div className="w-96 border-r border-[var(--grey-200)] bg-white flex flex-col">
@@ -178,6 +209,7 @@ export default async function MessagesPage() {
             <p className="text-[var(--grey-600)]">Choose a conversation to view messages</p>
           </div>
         </div>
+        )}
       </main>
     </div>
   )

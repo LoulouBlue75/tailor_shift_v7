@@ -1,6 +1,6 @@
 'use client'
 
-import { Input } from '@/components/ui'
+import { Input, PhoneInput } from '@/components/ui'
 import type { OnboardingData } from '../page'
 
 interface StepIdentityProps {
@@ -28,12 +28,12 @@ export function StepIdentity({ data, updateData }: StepIdentityProps) {
         />
       </div>
       
-      <Input
+      <PhoneInput
         label="Phone Number"
-        placeholder="+33 6 12 34 56 78"
-        type="tel"
-        value={data.phone}
-        onChange={(e) => updateData({ phone: e.target.value })}
+        countryCode={data.phone_country_code}
+        phone={data.phone}
+        onCountryCodeChange={(code) => updateData({ phone_country_code: code })}
+        onPhoneChange={(phone) => updateData({ phone: phone })}
         hint="Optional - for urgent communications only"
       />
       

@@ -36,7 +36,8 @@ export interface OnboardingData {
   // Step 1: Identity
   first_name: string
   last_name: string
-  phone: string
+  phone_country_code: string  // Phone country code (e.g., '+33', '+1')
+  phone: string  // Phone number without country code
   linkedin_url: string
   // Step 2: Professional
   current_role_level: string  // 'L0' for no experience (Academy path)
@@ -78,6 +79,7 @@ export interface OnboardingData {
 const initialData: OnboardingData = {
   first_name: '',
   last_name: '',
+  phone_country_code: '+33',  // Default to France
   phone: '',
   linkedin_url: '',
   current_role_level: '',
@@ -169,10 +171,23 @@ export default function TalentOnboardingPage() {
           hide_exact_figures?: boolean
         } | null
 
+        // Parse phone number: extract country code if stored together
+        let phoneCountryCode = '+33'
+        let phoneNumber = talent.phone || ''
+        if (talent.phone && talent.phone.startsWith('+')) {
+          // Try to extract country code from stored phone
+          const match = talent.phone.match(/^(\+\d{1,4})\s*(.*)$/)
+          if (match) {
+            phoneCountryCode = match[1]
+            phoneNumber = match[2]
+          }
+        }
+
         setData({
           first_name: talent.first_name || '',
           last_name: talent.last_name || '',
-          phone: talent.phone || '',
+          phone_country_code: phoneCountryCode,
+          phone: phoneNumber,
           linkedin_url: talent.linkedin_url || '',
           current_role_level: talent.current_role_level || '',
           store_tier_experience: talent.store_tier_experience || [],
@@ -268,10 +283,15 @@ export default function TalentOnboardingPage() {
       }
 
       // Build update object based on path
+      // Combine phone country code and number for storage
+      const fullPhone = data.phone
+        ? `${data.phone_country_code} ${data.phone}`.trim()
+        : null
+
       const updateData: Record<string, any> = {
         first_name: data.first_name,
         last_name: data.last_name,
-        phone: data.phone || null,
+        phone: fullPhone,
         linkedin_url: data.linkedin_url || null,
         current_role_level: data.current_role_level || null,
         current_location: data.current_location || null,

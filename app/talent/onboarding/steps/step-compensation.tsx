@@ -483,9 +483,6 @@ export function StepCompensation({ data, updateData }: StepCompensationProps) {
                 </button>
               ))}
             </div>
-            <p className="text-xs text-[var(--grey-500)] mt-2">
-              💡 Major cities often have +15-60% salary premium
-            </p>
           </div>
         )}
       </div>

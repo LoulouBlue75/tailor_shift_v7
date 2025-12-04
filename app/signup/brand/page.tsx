@@ -187,10 +187,10 @@ export default function BrandSignupPage() {
       if (authError) throw authError
       if (!authData.user) throw new Error('Failed to create user')
       
-      // Create profile
+      // Create or update profile
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           id: authData.user.id,
           email,
           full_name: fullName || null,
@@ -244,7 +244,7 @@ export default function BrandSignupPage() {
       // Create profile with pending status
       const { error: profileError } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           id: authData.user.id,
           email,
           full_name: fullName || null,

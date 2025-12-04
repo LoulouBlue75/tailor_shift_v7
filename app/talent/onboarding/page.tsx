@@ -32,6 +32,7 @@ const ACADEMY_STEPS = [
 ]
 
 export interface OnboardingData {
+  // Onboarding data interface
   // Step 1: Identity
   first_name: string
   last_name: string

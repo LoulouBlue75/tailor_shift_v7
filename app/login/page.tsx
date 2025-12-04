@@ -176,16 +176,34 @@ function LoginForm() {
           </Button>
         </div>
 
-        {/* Sign up link */}
-        <p className="mt-8 text-center text-small text-[var(--grey-600)]">
-          Don&apos;t have an account?{' '}
-          <Link
-            href="/signup"
-            className="text-[var(--charcoal)] font-medium hover:underline"
-          >
-            Sign up
-          </Link>
-        </p>
+        {/* Info box about account types */}
+        <div className="mt-6 p-4 bg-[var(--grey-50)] rounded-[var(--radius-md)] border border-[var(--grey-200)]">
+          <p className="text-small text-[var(--grey-600)] text-center">
+            Sign in with your existing account. Your account type (Professional or Brand) was set during registration.
+          </p>
+        </div>
+
+        {/* Sign up links - separate for each type */}
+        <div className="mt-8 text-center space-y-3">
+          <p className="text-small text-[var(--grey-600)]">
+            Don&apos;t have an account yet?
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <Link
+              href="/signup?type=talent"
+              className="text-sm font-medium text-[var(--charcoal)] hover:text-[var(--gold)] transition-colors"
+            >
+              I&apos;m a Professional
+            </Link>
+            <span className="text-[var(--grey-300)]">|</span>
+            <Link
+              href="/signup?type=brand"
+              className="text-sm font-medium text-[var(--charcoal)] hover:text-[var(--gold)] transition-colors"
+            >
+              I&apos;m a Brand
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}

@@ -50,11 +50,16 @@ export async function GET(request: Request) {
       }
 
       if (profile?.onboarding_completed) {
-        // Redirect to appropriate dashboard
-        const dashboard = profile.user_type === 'brand' ? '/brand/dashboard' : '/talent/dashboard'
+        // Redirect to appropriate dashboard based on user type
+        let dashboard = '/talent/dashboard'
+        if (profile.user_type === 'brand') dashboard = '/brand/dashboard'
+        if (profile.user_type === 'admin') dashboard = '/admin/dashboard'
         return NextResponse.redirect(`${origin}${dashboard}`)
       } else if (profile?.user_type) {
-        // Redirect to onboarding
+        // Redirect to onboarding (admins don't have onboarding, go to dashboard)
+        if (profile.user_type === 'admin') {
+          return NextResponse.redirect(`${origin}/admin/dashboard`)
+        }
         const onboarding = profile.user_type === 'brand' ? '/brand/onboarding' : '/talent/onboarding'
         return NextResponse.redirect(`${origin}${onboarding}`)
       } else {

@@ -49,10 +49,13 @@ function LoginForm() {
     setLoading(true)
     setFormError(null)
 
+    // Use window.location.origin to ensure cookies stay on same domain
+    const origin = typeof window !== 'undefined' ? window.location.origin : getSiteUrl()
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${getSiteUrl()}/auth/callback?next=${redirect}`,
+        redirectTo: `${origin}/auth/callback?next=${redirect}`,
       },
     })
 

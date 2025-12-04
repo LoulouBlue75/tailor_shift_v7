@@ -98,10 +98,13 @@ function SignupForm() {
     // Store user type in localStorage for after OAuth callback
     localStorage.setItem('signup_user_type', userType)
 
+    // Use window.location.origin to ensure cookies stay on same domain
+    const origin = typeof window !== 'undefined' ? window.location.origin : getSiteUrl()
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${getSiteUrl()}/auth/callback`,
+        redirectTo: `${origin}/auth/callback`,
       },
     })
 
